@@ -1,0 +1,65 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFrameworks>net6.0-windows</TargetFrameworks>
+		<UseWindowsForms>true</UseWindowsForms>
+		<PackageId>SysBot.Pokemon.WinForms</PackageId>
+		<Company>Project Pokémon</Company>
+		<Authors>Kaphotics</Authors>
+		<Product>SysBot.Pokemon.WinForms</Product>
+		<Description>Nintendo Switch Pokémon Bot Manager</Description>
+		<ApplicationIcon>icon.ico</ApplicationIcon>
+		<StartupObject>SysBot.Pokemon.WinForms.Program</StartupObject>
+		<AssemblyName>SysBot</AssemblyName>
+		<LangVersion>10</LangVersion>
+		<Version>01.00.00</Version>
+		<Nullable>enable</Nullable>
+		<Platforms>x64</Platforms>
+		<GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
+		<SelfContained>false</SelfContained>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<DebugSymbols>false</DebugSymbols>
+		<DebugType>None</DebugType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+		<PackageReference Include="PKHeX.Core" Version="22.12.19" />
+		<PackageReference Include="System.Resources.Extensions" Version="5.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\SysBot.Base\SysBot.Base.csproj" />
+		<ProjectReference Include="..\SysBot.Pokemon.Discord\SysBot.Pokemon.Discord.csproj" />
+		<ProjectReference Include="..\SysBot.Pokemon.Twitch\SysBot.Pokemon.Twitch.csproj" />
+		<ProjectReference Include="..\SysBot.Pokemon.YouTube\SysBot.Pokemon.YouTube.csproj" />
+		<ProjectReference Include="..\SysBot.Pokemon\SysBot.Pokemon.csproj" />
+		<ProjectReference Include="..\SysBot.Pokemon.Z3\SysBot.Pokemon.Z3.csproj" />
+	</ItemGroup>
+
+	<ItemGroup Condition="$(TargetFramework.StartsWith('net6')) AND '$(Configuration)' == 'Release'">
+		<PackageReference Include="Costura.Fody" Version="5.7.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Fody" Version="6.5.5" />
+	</ItemGroup>
+
+	<ItemGroup Condition="$(TargetFramework.StartsWith('net6'))">
+		<Reference Include="PKHeX.Drawing">
+			<HintPath>deps\PKHeX.Drawing.dll</HintPath>
+		</Reference>
+		<Reference Include="PKHeX.Drawing.PokeSprite">
+			<HintPath>deps\PKHeX.Drawing.PokeSprite.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Update="Properties\Resources.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
+
+</Project>
