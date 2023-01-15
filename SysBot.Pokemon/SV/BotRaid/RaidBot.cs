@@ -17,6 +17,7 @@ namespace SysBot.Pokemon
         public static bool RaidSVEmbedsInitialized { get; set; }
         public static ConcurrentQueue<(byte[]?, EmbedBuilder)> EmbedQueue { get; set; } = new();
         private RemoteControlAccessList RaiderBanList => Settings.RaiderBanList;
+        private RemoteControlAccessList RaiderAllowList => Settings.RaiderAllowList;
 
         public RaidSV(PokeBotState cfg, PokeTradeHub<PK9> hub) : base(cfg)
         {
@@ -226,7 +227,7 @@ namespace SysBot.Pokemon
                     RaidTracker[nid] = penalty;
                     Log($"Player: {name} completed the raid with Penalty Count: {penalty}.");
 
-                    if (penalty > Settings.CatchLimit && !RaiderBanList.Contains(nid) && Settings.CatchLimit != 0)
+                    if (penalty > Settings.CatchLimit && !RaiderBanList.Contains(nid) && Settings.CatchLimit != 0 && !RaiderAllowList.Contains(nid))
                     {
                         Log($"Player: {name} exceeded the catch limit {penalty}/{Settings.CatchLimit} for {Settings.RaidSpecies} on {DateTime.Now}.");
                         RaiderBanList.List.Add(new() { ID = nid, Name = name, Comment = $"Player: {name} exceeded the catch limit {penalty}/{Settings.CatchLimit} for {Settings.RaidSpecies} on {DateTime.Now}." });
