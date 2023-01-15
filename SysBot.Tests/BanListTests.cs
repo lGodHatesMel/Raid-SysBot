@@ -15,11 +15,11 @@ namespace SysBot.Tests
             var result = await BanService.IsRaiderBanned("Fidio", Url, "TestRoutine", true).ConfigureAwait(false);
             result.Item1.Should().BeTrue();
 
-            result = await BanService.IsRaiderBanned("Nishikigoi", Url, "TestRoutine", true).ConfigureAwait(false);
+            result = await BanService.IsRaiderBanned("Nishikigoi", Url, "TestRoutine", false).ConfigureAwait(false);
             result.Item1.Should().BeFalse();
 
-            result = await BanService.IsRaiderBanned("Kazuha", Url, "TestRoutine", true).ConfigureAwait(false);
-            result.Item1.Should().BeFalse();
+            result = await BanService.IsRaiderBanned("雪雪雪雪", Url, "TestRoutine", false).ConfigureAwait(false);
+            result.Item1.Should().BeTrue();
         }
     }
 }
