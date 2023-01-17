@@ -491,6 +491,8 @@ namespace SysBot.Pokemon.Discord
             return false;
         }
 
+
+        // NotTrade Additions
         [Command("arceusEmbed")]
         [Alias("ae")]
         [Summary("Initialize posting of ArceusBot embeds to specified Discord channels.")]
@@ -666,8 +668,7 @@ namespace SysBot.Pokemon.Discord
                 {
                     var img = "zap.jpg";
                     var turl = string.Empty;
-                    var form = string.Empty;
-                    var isShiny = RaidSettingsSV.RaidSpeciesIsShiny;
+                    var form = string.Empty;                    
                     PK9 pk = new()
                     {
                         Species = (ushort)RaidSettingsSV.RaidSpecies,
@@ -675,14 +676,17 @@ namespace SysBot.Pokemon.Discord
                     };
                     if (pk.Form != 0)
                         form = $"-{pk.Form}";
-                    if (isShiny)
-                        CommonEdits.SetShiny(pk, Shiny.Always);
+                    var isShiny = RaidSettingsSV.RaidSpeciesIsShiny ? CommonEdits.SetIsShiny(pk, true) : CommonEdits.SetIsShiny(pk, false);
                     if ((Species)pk.Species <= Species.Enamorus)
                         turl = TradeExtensions<PK9>.PokeImg(pk, false, false);
-                    if ((Species)pk.Species is Species.Wooper && pk.Form != 0 && isShiny || (Species)pk.Species is Species.Tauros && pk.Form != 0 && isShiny || (Species)pk.Species > Species.Enamorus && pk.Species != 0 && isShiny)
-                        turl = $"https://raw.githubusercontent.com/zyro670/PokeTextures/main/Placeholder_Sprites/scaled_up_sprites/Shiny/" + $"{pk.Species}{form}" + ".png";
-                    if ((Species)pk.Species is Species.Wooper && pk.Form != 0 && !isShiny || (Species)pk.Species is Species.Tauros && pk.Form != 0 && !isShiny || (Species)pk.Species > Species.Enamorus && pk.Species != 0 && !isShiny)
-                        turl = $"https://raw.githubusercontent.com/zyro670/PokeTextures/main/Placeholder_Sprites/scaled_up_sprites/" + $"{pk.Species}{form}" + ".png";
+                    if ((Species)pk.Species > Species.Enamorus || (Species)pk.Species is Species.Wooper && pk.Form != 0 || (Species)pk.Species is Species.Tauros && pk.Form != 0)
+                    {
+                        if (isShiny)
+                            turl = $"https://raw.githubusercontent.com/zyro670/PokeTextures/main/Placeholder_Sprites/scaled_up_sprites/Shiny/" + $"{pk.Species}{form}" + ".png";
+                        else
+                            turl = $"https://raw.githubusercontent.com/zyro670/PokeTextures/main/Placeholder_Sprites/scaled_up_sprites/" + $"{pk.Species}{form}" + ".png";
+                    }
+
                     _ = new EmbedBuilder();
                     EmbedBuilder? embed = embedInfo.Item2;
                     embed.ThumbnailUrl = turl;
@@ -704,6 +708,88 @@ namespace SysBot.Pokemon.Discord
                 }
                 else await Task.Delay(0_500).ConfigureAwait(false);
             }
+        }
+
+        [Command("SVEmbed")]
+        [Alias("svem", "sve")]
+        [Summary("Initialize posting of SV shiny result embeds to specified Discord channels.")]
+        [RequireSudo]
+        public async Task InitializeEmbedsSV()
+        {
+            if (SysCord<T>.Runner.Hub.Config.StopConditions.ResultsEmbedChannels == string.Empty)
+            {
+                await ReplyAsync("No channels to post embeds in.").ConfigureAwait(false);
+                return;
+            }
+
+            List<ulong> channels = new();
+            foreach (var channel in SysCord<T>.Runner.Hub.Config.StopConditions.ResultsEmbedChannels.Split(',', ' '))
+            {
+                if (ulong.TryParse(channel, out ulong result) && !channels.Contains(result))
+                    channels.Add(result);
+            }
+
+            if (channels.Count == 0)
+            {
+                await ReplyAsync("No valid channels found.").ConfigureAwait(false);
+                return;
+            }
+
+            await ReplyAsync(!EggBotSV.EmbedsInitialized ? "Scarlet | Violet Embed task started!" : "Scarlet | Violet Embed task stopped!").ConfigureAwait(false);
+            if (EggBotSV.EmbedsInitialized)
+                EggBotSV.EmbedSource.Cancel();
+            else _ = Task.Run(async () => await SVEmbedLoop(channels));
+            EggBotSV.EmbedsInitialized ^= true;
+        }
+
+        private async Task SVEmbedLoop(List<ulong> channels)
+        {
+            var ping = SysCord<T>.Runner.Hub.Config.StopConditions.MatchFoundEchoMention;
+            while (!EggBotSV.EmbedSource.IsCancellationRequested)
+            {
+                if (EggBotSV.EmbedMon.Item1 != null)
+                {
+                    var url = TradeExtensions<PK9>.PokeImg(EggBotSV.EmbedMon.Item1, false, false);
+                    var gender = EggBotSV.EmbedMon.Item1.Gender == 0 ? " - (M)" : EggBotSV.EmbedMon.Item1.Gender == 1 ? " - (F)" : "";
+
+                    var description = $"{(EggBotSV.EmbedMon.Item1.ShinyXor == 0 ? "■ - " : EggBotSV.EmbedMon.Item1.ShinyXor <= 16 ? "★ - " : "")}{SpeciesName.GetSpeciesNameGeneration(EggBotSV.EmbedMon.Item1.Species, 2, 8)}{TradeExtensions<T>.FormOutput(EggBotSV.EmbedMon.Item1.Species, EggBotSV.EmbedMon.Item1.Form, out _)}{gender}\nIVs: {EggBotSV.EmbedMon.Item1.IV_HP}/{EggBotSV.EmbedMon.Item1.IV_ATK}/{EggBotSV.EmbedMon.Item1.IV_DEF}/{EggBotSV.EmbedMon.Item1.IV_SPA}/{EggBotSV.EmbedMon.Item1.IV_SPD}/{EggBotSV.EmbedMon.Item1.IV_SPE}";
+                    if (SysCord<T>.Runner.Hub.Config.StopConditions.ShinyTarget == TargetShinyType.NonShiny)
+                        description = $"{SpeciesName.GetSpeciesNameGeneration(EggBotSV.EmbedMon.Item1.Species, 2, 8)}{TradeExtensions<T>.FormOutput(EggBotSV.EmbedMon.Item1.Species, EggBotSV.EmbedMon.Item1.Form, out _)}\nIVs: {EggBotSV.EmbedMon.Item1.IV_HP}/{EggBotSV.EmbedMon.Item1.IV_ATK}/{EggBotSV.EmbedMon.Item1.IV_DEF}/{EggBotSV.EmbedMon.Item1.IV_SPA}/{EggBotSV.EmbedMon.Item1.IV_SPD}/{EggBotSV.EmbedMon.Item1.IV_SPE}";
+
+                    var markurl = string.Empty;
+                    if (EggBotSV.EmbedMon.Item2)
+                        markurl = "https://i.imgur.com/T8vEiIk.jpg";
+                    else
+                        markurl = $"https://i.imgur.com/t2M8qF4.png";
+
+                    var author = new EmbedAuthorBuilder { IconUrl = markurl, Name = EggBotSV.EmbedMon.Item2 ? "Match found!" : "Unwanted match..." };
+                    var embed = new EmbedBuilder
+                    {
+                        Color = EggBotSV.EmbedMon.Item2 ? Color.Teal : Color.Red,
+                        ThumbnailUrl = url
+                    }.WithAuthor(author).WithDescription(description);
+
+                    var guilds = Context.Client.Guilds;
+                    foreach (var guild in guilds)
+                    {
+                        foreach (var channel in channels)
+                        {
+                            var ch = guild.Channels.FirstOrDefault(x => x.Id == channel);
+                            if (ch != default && ch is ISocketMessageChannel sock)
+                            {
+                                try
+                                {
+                                    await sock.SendMessageAsync(EggBotSV.EmbedMon.Item2 ? ping : "", embed: embed.Build()).ConfigureAwait(false);
+                                }
+                                catch { }
+                            }
+                        }
+                    }
+                    EggBotSV.EmbedMon.Item1 = null;
+                }
+                else await Task.Delay(1_000).ConfigureAwait(false);
+            }
+            EggBotSV.EmbedSource = new();
         }
 
         [Command("repeek")]
