@@ -32,6 +32,9 @@ namespace SysBot.Pokemon
         [Category(Hosting), Description("If the species is shiny set to true. False for non-shiny.")]
         public bool RaidSpeciesIsShiny { get; set; } = true;
 
+        [Category(FeatureToggle), Description("If true, the bot will hide the raid code in the embed.")]
+        public bool HideRaidCode { get; set; } = true;
+
         [Category(FeatureToggle), Description("If true, the bot will use a random code for the raid.")]
         public bool CodeTheRaid { get; set; } = true;
 

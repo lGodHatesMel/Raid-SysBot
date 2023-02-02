@@ -586,7 +586,10 @@ namespace SysBot.Pokemon
 
                 if (!disband && names is null)
                 {                    
-                    embed.AddField("**Waiting in lobby!**", $"Raid code: {code}");
+                    if (Settings.HideRaidCode)
+                        embed.AddField("***Waiting in lobby!***", $"**Twitch Stream:**\n" + $"https://www.twitch.tv/lgodhatesmel");
+                    else
+                        embed.AddField("**Waiting in lobby!**", $"Raid code: {code}");
                 }
 
                 if (!disband && names is not null)
