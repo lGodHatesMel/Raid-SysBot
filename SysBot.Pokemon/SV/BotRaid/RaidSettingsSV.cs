@@ -35,6 +35,9 @@ namespace SysBot.Pokemon
         [Category(FeatureToggle), Description("If true, the bot will hide the raid code in the embed.")]
         public bool HideRaidCode { get; set; } = true;
 
+        [Category(FeatureToggle), Description("If using The `HideRaidCode` Option then add your stream Link URL Here.")]
+        public string RaidStreamLink { get; set; } = "";
+
         [Category(FeatureToggle), Description("If true, the bot will use a random code for the raid.")]
         public bool CodeTheRaid { get; set; } = true;
 

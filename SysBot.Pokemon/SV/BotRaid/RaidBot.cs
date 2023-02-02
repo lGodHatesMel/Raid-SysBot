@@ -585,10 +585,10 @@ namespace SysBot.Pokemon
                 });
 
                 if (!disband && names is null)
-                {                    
+                {
                     if (Settings.HideRaidCode)
                     {
-                        embed.AddField("***Waiting in lobby!***", $"**Twitch Stream:**\nhttps://www.twitch.tv/lgodhatesmel");
+                        embed.AddField("***Waiting in lobby!***", $"**Twitch Stream:**\n[Click Here for Stream Link]({Settings.RaidStreamLink})");
                     }
                     else
                     {
