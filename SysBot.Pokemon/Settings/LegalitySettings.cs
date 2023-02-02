@@ -29,10 +29,10 @@ namespace SysBot.Pokemon
         }
 
         [Category(Generate), Description("Default 16-bit Trainer ID (TID) for requests that don't match any of the provided trainer data files. This should be a 5-digit number.")]
-        public int GenerateTID16 { get; set; } = 12345;
+        public ushort GenerateTID16 { get; set; } = 12345;
 
         [Category(Generate), Description("Default 16-bit Secret ID (SID) for requests that don't match any of the provided trainer data files. This should be a 5-digit number.")]
-        public int GenerateSID16 { get; set; } = 54321;
+        public ushort GenerateSID16 { get; set; } = 54321;
 
         [Category(Generate), Description("Default language for PKM files that don't match any of the provided PKM files.")]
         public LanguageID GenerateLanguage { get; set; } = LanguageID.English;
@@ -44,19 +44,19 @@ namespace SysBot.Pokemon
         public bool SetMatchingBalls { get; set; }
 
         [Category(Generate), Description("Force the specified ball if legal.")]
-        public bool ForceSpecifiedBall { get; set; } = false;
+        public bool ForceSpecifiedBall { get; set; }
 
         [Category(Generate), Description("Allow XOROSHIRO when generating Gen 8 Raid Pokémon.")]
         public bool UseXOROSHIRO { get; set; } = true;
 
         [Category(Generate), Description("Bot will create an Easter Egg Pokémon if provided an illegal set.")]
-        public bool EnableEasterEggs { get; set; } = false;
+        public bool EnableEasterEggs { get; set; }
 
         [Category(Generate), Description("Allow users to submit custom OT, TID, SID, and OT Gender in Showdown sets.")]
-        public bool AllowTrainerDataOverride { get; set; } = false;
+        public bool AllowTrainerDataOverride { get; set; }
 
         [Category(Generate), Description("Allow users to submit further customization with Batch Editor commands.")]
-        public bool AllowBatchCommands { get; set; } = false;
+        public bool AllowBatchCommands { get; set; }
 
         [Category(Generate), Description("Maximum time in seconds to spend when generating a set before canceling. This prevents difficult sets from freezing the bot.")]
         public int Timeout { get; set; } = 15;

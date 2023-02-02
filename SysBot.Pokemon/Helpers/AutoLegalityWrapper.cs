@@ -43,8 +43,8 @@ namespace SysBot.Pokemon
         {
             // Seed the Trainer Database with enough fake save files so that we return a generation sensitive format when needed.
             string OT = cfg.GenerateOT;
-            int TID = cfg.GenerateTID16;
-            int SID = cfg.GenerateSID16;
+            ushort TID = cfg.GenerateTID16;
+            ushort SID = cfg.GenerateSID16;
             int lang = (int)cfg.GenerateLanguage;
 
             var externalSource = cfg.GeneratePathTrainerInfo;
@@ -59,8 +59,8 @@ namespace SysBot.Pokemon
                     var fallback = new SimpleTrainerInfo(v)
                     {
                         Language = lang,
-                        TID = TID,
-                        SID = SID,
+                        TID16 = TID,
+                        SID16 = SID,
                         OT = OT,
                     };
                     var exist = TrainerSettings.GetSavedTrainerData(v, i, fallback);
@@ -112,6 +112,8 @@ namespace SysBot.Pokemon
                 return TrainerSettings.GetSavedTrainerData(GameVersion.BDSP, 8);
             if (typeof(T) == typeof(PA8))
                 return TrainerSettings.GetSavedTrainerData(GameVersion.PLA, 8);
+            if (typeof(T) == typeof(PK9))
+                return TrainerSettings.GetSavedTrainerData(GameVersion.SV, 9);
 
             throw new ArgumentException("Type does not have a recognized trainer fetch.", typeof(T).Name);
         }

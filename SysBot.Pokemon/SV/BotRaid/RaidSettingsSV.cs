@@ -15,7 +15,7 @@ namespace SysBot.Pokemon
         public string BanListURL { get; set; } = "https://raw.githubusercontent.com/PokemonAutomation/ServerConfigs-PA-SHA/main/PokemonScarletViolet/TeraAutoHost-BanList.json";
 
         [Category(Hosting), Description("Amount of raids before updating the ban list. If you want the global ban list off, set this to -1.")]
-        public int RaidsBetweenUpdate { get; set; } = 10;
+        public int RaidsBetweenUpdate { get; set; } = 3;
 
         [Category(FeatureToggle), Description("Raid embed title.")]
         public string RaidEmbedTitle { get; set; } = "Tera Raid Notification";
@@ -44,14 +44,8 @@ namespace SysBot.Pokemon
         [Category(Hosting), Description("Users NIDs here are banned raiders.")]
         public RemoteControlAccessList RaiderBanList { get; set; } = new() { AllowIfEmpty = false };
 
-        [Category(Hosting), Description("Users NIDs that override CatchLimit and are never added to RaiderBanList.")]
-        public RemoteControlAccessList RaiderAllowList { get; set; } = new() { AllowIfEmpty = false };
-
-        [Category(FeatureToggle), Description("If true, the bot will apply rollback correction.")]
-        public bool RollbackTime { get; set; } = true;
-
-        [Category(Hosting), Description("Amount of raids to complete before rolling time back 1 hour.")]
-        public int RollbackTimeAfterThisManyRaids { get; set; } = 10;
+        [Category(FeatureToggle), Description("Set your Switch Date/Time format in the Date/Time settings. The day will automatically rollback by 1 if the Date changes.")]
+        public DTFormat DateTimeFormat { get; set; } = DTFormat.MMDDYY;
 
         [Category(Hosting), Description("Time to scroll down duration in milliseconds for accessing date/time settings during rollover correction. You want to have it overshoot the Date/Time setting by 1, as it will click DUP after scrolling down. [Default: 930ms]")]
         public int HoldTimeForRollover { get; set; } = 930;
@@ -66,8 +60,7 @@ namespace SysBot.Pokemon
         public string RaidEmbedChannelsSV { get; set; } = string.Empty;
 
         [Category(FeatureToggle), Description("When enabled, the screen will be turned off during normal bot loop operation to save power.")]
-        public bool ScreenOff { get; set; } = false;
-
+        public bool ScreenOff { get; set; }
 
         private int _completedRaids;
 
@@ -89,6 +82,13 @@ namespace SysBot.Pokemon
                 yield break;
             if (CompletedRaids != 0)
                 yield return $"Started Raids: {CompletedRaids}";
+        }
+
+        public enum DTFormat
+        { 
+            MMDDYY,
+            DDMMYY,
+            YYMMDD,
         }
     }
 }

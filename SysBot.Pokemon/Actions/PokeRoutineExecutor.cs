@@ -79,7 +79,7 @@ namespace SysBot.Pokemon
 
             string IVList = pk.IV_HP + "." + pk.IV_ATK + "." + pk.IV_DEF + "." + pk.IV_SPA + "." + pk.IV_SPD + "." + pk.IV_SPE;
 
-            string TIDFormatted = pk.Generation >= 7 ? $"{pk.TrainerID7:000000}" : $"{pk.TID:00000}";
+            string TIDFormatted = pk.Generation >= 7 ? $"{pk.TrainerTID7:000000}" : $"{pk.TID16:00000}";
 
             if (pk.Ball != (int)Ball.None)
                 ballFormatted = " - " + GameInfo.Strings.balllist[pk.Ball].Split(' ')[0];
@@ -114,6 +114,25 @@ namespace SysBot.Pokemon
             var fn = Path.Combine(dir, filename + filetype);
             File.WriteAllBytes(fn, pk.DecryptedPartyData);
             LogUtil.LogInfo($"Saved file: {fn}", "Dump");
+        }
+
+        public async Task<bool> TryReconnect(int attempts, int extraDelay, SwitchProtocol protocol, CancellationToken token)
+        {
+            // USB can have several reasons for connection loss, some of which is not recoverable (power loss, sleep). Only deal with WiFi for now.
+            if (protocol is SwitchProtocol.WiFi)
+            {
+                // If ReconnectAttempts is set to -1, this should allow it to reconnect (essentially) indefinitely.
+                for (int i = 0; i < (uint)attempts; i++)
+                {
+                    LogUtil.LogInfo($"Trying to reconnect... ({i + 1})", Connection.Label);
+                    Connection.Reset();
+                    if (Connection.Connected)
+                        break;
+
+                    await Task.Delay(30_000 + (int)extraDelay, token).ConfigureAwait(false);
+                }
+            }
+            return Connection.Connected;
         }
     }
 }
