@@ -62,10 +62,6 @@ namespace SysBot.Pokemon
 
         [Category(BotEncounter)]
         [TypeConverter(typeof(ExpandableObjectConverter))]
-        public RaidSettingsSV RaidSV { get; set; } = new();
-
-        [Category(BotEncounter)]
-        [TypeConverter(typeof(ExpandableObjectConverter))]
         public ArceusBotSettings ArceusLA { get; set; } = new();
 
         [Category(BotEncounter)]
@@ -104,6 +100,10 @@ namespace SysBot.Pokemon
         [TypeConverter(typeof(ExpandableObjectConverter))]
         public RollingRaidSettings RollingRaidSWSH { get; set; } = new();
 
+        [Category(BotEncounter)]
+        [TypeConverter(typeof(ExpandableObjectConverter))]
+        public RaidSettingsSV RaidSV { get; set; } = new();
+        
         // Integration
 
         [Category(Integration)]
