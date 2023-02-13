@@ -42,7 +42,7 @@ namespace SysBot.Pokemon
 
         public override async Task MainLoop(CancellationToken token)
         {
-            await InitializeHardware(Hub.Config.EggSWSH, token).ConfigureAwait(false);
+            await InitializeHardware(Hub.Config.EggSV, token).ConfigureAwait(false);
 
             Log("Identifying trainer data of the host console.");
             await IdentifyTrainer(token).ConfigureAwait(false);
@@ -199,20 +199,7 @@ namespace SysBot.Pokemon
                                 if (reset == Settings.ResetGameAfterThisManySandwiches && Settings.ResetGameAfterThisManySandwiches != 0)
                                 {
                                     reset = 0;
-                                    if (mode == EggMode.WaitAndClose)
-                                        await RecoveryReset(token).ConfigureAwait(false);
-
-                                    else if (mode == EggMode.CollectAndDump)
-                                    {
-                                        Log("Resetting game to rid us of any memory leak.");
-                                        await ReOpenGame(Hub.Config, token).ConfigureAwait(false);
-                                        await Task.Delay(1_000, token).ConfigureAwait(false);
-                                        await Click(X, 2_000, token).ConfigureAwait(false);
-                                        await Click(DRIGHT, 0_500, token).ConfigureAwait(false);
-                                        await Click(DDOWN, 0_500, token).ConfigureAwait(false);
-                                        await Click(DDOWN, 0_500, token).ConfigureAwait(false);
-                                        await Click(A, 7_000, token).ConfigureAwait(false);
-                                    }
+                                    await RecoveryReset(token).ConfigureAwait(false);
                                 }
                                 reset++;
                             }
@@ -226,9 +213,11 @@ namespace SysBot.Pokemon
                         waiting = 0;
                         eggcount++;
                         var print = Hub.Config.StopConditions.GetSpecialPrintName(pk);
-                        Log($"Encounter: {eggcount}{Environment.NewLine}{print}{Environment.NewLine}");
+                        var size = PokeSizeDetailedUtil.GetSizeRating(pk.Scale);
+                        Log($"Encounter: {eggcount}{Environment.NewLine}{print}{Environment.NewLine}Scale: {size}");
                         Settings.AddCompletedEggs();
                         TradeExtensions<PK9>.EncounterLogs(pk, "EncounterLogPretty_EggSV.txt");
+                        TradeExtensions<PK9>.EncounterScaleLogs(pk, "EncounterLogScalePretty.txt");
                         ctr++;
 
                         bool match = await CheckEncounter(print, pk).ConfigureAwait(false);
@@ -277,18 +266,6 @@ namespace SysBot.Pokemon
                     reset = 0;
                     if (mode == EggMode.WaitAndClose)
                         await RecoveryReset(token).ConfigureAwait(false);
-
-                    /*else if (mode == EggMode.CollectAndDump) Commenting out for now until proper navigation to basket is ready upon picnic reopen.
-                    {
-                        Log("Resetting game to rid us of any memory leak.");
-                        await ReOpenGame(Hub.Config, token).ConfigureAwait(false);
-                        await Task.Delay(1_000, token).ConfigureAwait(false);
-                        await Click(X, 2_000, token).ConfigureAwait(false);
-                        await Click(DRIGHT, 0_500, token).ConfigureAwait(false);
-                        await Click(DDOWN, 0_500, token).ConfigureAwait(false);
-                        await Click(DDOWN, 0_500, token).ConfigureAwait(false);
-                        await Click(A, 7_000, token).ConfigureAwait(false);
-                    }*/
                 }
                 reset++;
                 await MakeSandwich(token).ConfigureAwait(false);
@@ -319,6 +296,9 @@ namespace SysBot.Pokemon
 
                 return true; //No match, return true to keep scanning
             }
+
+            if (Settings.MinMaxScaleOnly && pk.Scale > 0 && pk.Scale < 255)
+                return true;
 
             // no need to take a video clip of us receiving an egg.
             var mode = Settings.ContinueAfterMatch;
@@ -492,18 +472,42 @@ namespace SysBot.Pokemon
             {
                 while (!text.SequenceEqual(TextVal)) // No egg
                 {
-                    await Click(A, 1_000, token).ConfigureAwait(false);
+                    await Click(A, 1_500, token).ConfigureAwait(false);
 
                     var dumpmon = await ReadBoxPokemonSV(b1s1, 344, token).ConfigureAwait(false);
                     if (dumpmon != null && (Species)dumpmon.Species != Species.None)
                     {
                         DumpPokemon(DumpSetting.DumpFolder, "eggs", dumpmon);
-                        await Task.Delay(1_000, token).ConfigureAwait(false);
+                        await Task.Delay(1_500, token).ConfigureAwait(false);
                         await SetBoxPokemonEgg(Blank, InjectBox, InjectSlot, token).ConfigureAwait(false);
                     }
                     text = await SwitchConnection.ReadBytesAbsoluteAsync(ofs, 4, token).ConfigureAwait(false);
                 }
             }
         }
+
+        private async Task TestWagon(CancellationToken token)
+        {
+            long[] ptr = new long[] { 0x43F3DF8, 0x68, 0xE0, 0x7A };
+            var bytes = await SwitchConnection.PointerAll(ptr, token).ConfigureAwait(false);
+            byte[] results = await SwitchConnection.ReadBytesAbsoluteAsync(bytes, 80, token).ConfigureAwait(false);
+            var rest = BitConverter.ToString(results);
+            Log($"Test bytes: {rest}");
+
+            byte[] val = new byte[WagonWrite.Length / 2];
+
+            for (int i = 0; i < WagonWrite.Length; i += 2)
+                val[i / 2] = Convert.ToByte(WagonWrite.Substring(i, 2), 16);
+
+            //var val = ulong.Parse(WagonWrite.Replace(" ", ""), NumberStyles.AllowHexSpecifier);
+            //byte[] v1 = BitConverter.GetBytes(val);
+            await SwitchConnection.WriteBytesAbsoluteAsync(val, bytes, token).ConfigureAwait(false);
+
+            results = await SwitchConnection.ReadBytesAbsoluteAsync(bytes, 80, token).ConfigureAwait(false);
+            rest = BitConverter.ToString(results);
+            Log($"Test2 bytes: {rest}");
+        }
+
+        public string WagonWrite = "04000800080000000A0000001000000000000A001200040008000C000A000000000070410000A0401000000000000A001000040008000C000A000000000000410000C04000004040";
     }
 }

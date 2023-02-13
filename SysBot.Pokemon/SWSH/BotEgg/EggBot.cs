@@ -51,9 +51,32 @@ namespace SysBot.Pokemon
                     if (!await InnerLoop(token).ConfigureAwait(false))
                         break;
                 }
-                catch (Exception e)
+                catch
                 {
-                    Log(e.Message);
+                    var attempts = Hub.Config.Timings.ReconnectAttempts;
+                    var delay = Hub.Config.Timings.ExtraReconnectDelay;
+                    var protocol = Config.Connection.Protocol;
+                    if (!await TryReconnect(attempts, delay, protocol, token).ConfigureAwait(false))
+                        return;
+
+                    Log($"Successful reconnect on lost connection. Attempting full recovery.");
+
+                    if (Settings.EggBotMode == EggMode.WaitAndClose)
+                    {
+                        await ReOpenGame(Hub.Config, token).ConfigureAwait(false); // Reset game to resync 
+                        await InitializeHardware(Hub.Config.EggSWSH, token).ConfigureAwait(false);
+
+                        Log("Identifying trainer data of the host console.");
+                        await IdentifyTrainer(token).ConfigureAwait(false);
+                        OverworldOffset = await SwitchConnection.PointerAll(Offsets.OverworldPointer, token).ConfigureAwait(false);
+                        await SetupBoxState(token).ConfigureAwait(false);
+                        Log("Starting main EggBot loop.");
+                        await Click(X, 1_700, token).ConfigureAwait(false);
+                        await Click(DRIGHT, 0_250, token).ConfigureAwait(false);
+                        await Click(DDOWN, 0_250, token).ConfigureAwait(false);
+                        await Click(DDOWN, 0_250, token).ConfigureAwait(false);
+                        await Click(A, 7_000, token).ConfigureAwait(false); // First picnic might take longer.
+                    }
                 }
             }
 

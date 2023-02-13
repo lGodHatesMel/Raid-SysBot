@@ -10,6 +10,10 @@
         DistortionReader = 5,
         PlayerCoordScan = 6,
         MultiSpawnPathSearch = 7,
+        GenieScanner = 8,
+        ManaphyReset = 9,
+        AdvanceTimeDelay = 10,
+    }
     }
     public enum ArceusAutoFill
     {
