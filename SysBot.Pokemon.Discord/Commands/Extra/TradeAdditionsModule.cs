@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Discord.WebSocket;
 using System.Collections;
+using System.Reflection;
 
 namespace SysBot.Pokemon.Discord
 {
@@ -718,8 +719,8 @@ namespace SysBot.Pokemon.Discord
             }
         }
 
-        [Command("SVEmbed")]
-        [Alias("svem", "sve")]
+        [Command("SVEgg")]
+        [Alias("sve")]
         [Summary("Initialize posting of SV shiny result embeds to specified Discord channels.")]
         [RequireSudo]
         public async Task InitializeEmbedsSV()
@@ -743,7 +744,7 @@ namespace SysBot.Pokemon.Discord
                 return;
             }
 
-            await ReplyAsync(!EggBotSV.EmbedsInitialized ? "Scarlet | Violet Embed task started!" : "Scarlet | Violet Embed task stopped!").ConfigureAwait(false);
+            await ReplyAsync(!EggBotSV.EmbedsInitialized ? "Scarlet | Violet Egg Embed task started!" : "Scarlet | Violet Egg Embed task stopped!").ConfigureAwait(false);
             if (EggBotSV.EmbedsInitialized)
                 EggBotSV.EmbedSource.Cancel();
             else _ = Task.Run(async () => await SVEmbedLoop(channels));
@@ -777,7 +778,6 @@ namespace SysBot.Pokemon.Discord
                                 spec = "\nFamily of 4";
                         }
                     }
-
                     var size = $"\nScale: {PokeSizeDetailedUtil.GetSizeRating(EggBotSV.EmbedMon.Item1.Scale)}";
                     var gender = EggBotSV.EmbedMon.Item1.Gender == 0 ? " - (M)" : EggBotSV.EmbedMon.Item1.Gender == 1 ? " - (F)" : "";
 
@@ -820,6 +820,14 @@ namespace SysBot.Pokemon.Discord
             }
             EggBotSV.EmbedSource = new();
         }
+
+        public static readonly string[] MarkTitle =
+{
+            " the Peckish"," the Sleepy"," the Dozy"," the Early Riser"," the Cloud Watcher"," the Sodden"," the Thunderstruck"," the Snow Frolicker"," the Shivering"," the Parched"," the Sandswept"," the Mist Drifter",
+            " the Chosen One"," the Catch of the Day"," the Curry Connoisseur"," the Sociable"," the Recluse"," the Rowdy"," the Spacey"," the Anxious"," the Giddy"," the Radiant"," the Serene"," the Feisty"," the Daydreamer",
+            " the Joyful"," the Furious"," the Beaming"," the Teary-Eyed"," the Chipper"," the Grumpy"," the Scholar"," the Rampaging"," the Opportunist"," the Stern"," the Kindhearted"," the Easily Flustered"," the Driven",
+            " the Apathetic"," the Arrogant"," the Reluctant"," the Humble"," the Pompous"," the Lively"," the Worn-Out",
+        };
 
         [Command("repeek")]
         [Summary("Take and send a screenshot from the specified Switch.")]

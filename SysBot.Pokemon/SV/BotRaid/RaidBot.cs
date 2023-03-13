@@ -1,8 +1,13 @@
 using Discord;
 using PKHeX.Core;
 using SysBot.Pokemon.SV;
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using static SysBot.Base.SwitchButton;
 using static SysBot.Pokemon.RaidSettingsSV;
 
@@ -18,14 +23,13 @@ namespace SysBot.Pokemon
         public static bool RaidSVEmbedsInitialized { get; set; }
         public static ConcurrentQueue<(byte[]?, EmbedBuilder)> EmbedQueue { get; set; } = new();
         private RemoteControlAccessList RaiderBanList => Settings.RaiderBanList;
-
         public RaidSV(PokeBotState cfg, PokeTradeHub<PK9> hub) : base(cfg)
         {
             Hub = hub;
             Settings = hub.Config.RaidSV;
         }
 
-        private const string RaidBotVersion = "Version 0.3.4a";
+        private const string RaidBotVersion = "Version 0.3.5";
         private int RaidsAtStart;
         private int RaidCount;
         private int WinCount;
@@ -151,7 +155,7 @@ namespace SysBot.Pokemon
                         Log("Clearing stored OTs");
                         for (int i = 0; i < 3; i++)
                         {
-                            var ptr = new long[] { 0x437ECE0, 0x48, 0xE0 + (i * 0x30), 0x0 };
+                            var ptr = new long[] { 0x44A3528, 0x48, 0xE0 + (i * 0x30), 0x0 };
                             await SwitchConnection.PointerPoke(new byte[16], ptr, token).ConfigureAwait(false);
                         }
                         continue;
@@ -208,7 +212,7 @@ namespace SysBot.Pokemon
                         if (nid == 0)
                             continue;
 
-                        var pointer = new long[] { 0x437ECE0, 0x48, 0xE0 + (i * 0x30), 0x0 };
+                        var pointer = new long[] { 0x44A3528, 0x48, 0xE0 + (i * 0x30), 0x0 };
                         var trainer = await GetTradePartnerMyStatus(pointer, token).ConfigureAwait(false);
 
                         if (string.IsNullOrWhiteSpace(trainer.OT))
@@ -329,7 +333,8 @@ namespace SysBot.Pokemon
                     return false;
             }
 
-            await Click(B, 0_500, token).ConfigureAwait(false);
+            for (int i = 0; i < 5; i++)
+                await Click(B, 0_500, token).ConfigureAwait(false);
 
             // If not in the overworld, we've been attacked so quit earlier.
             if (!await IsOnOverworld(OverworldOffset, token).ConfigureAwait(false))
@@ -452,7 +457,7 @@ namespace SysBot.Pokemon
                         nid = BitConverter.ToUInt64(data, 0);
                     }
 
-                    var pointer = new long[] { 0x437ECE0, 0x48, 0xE0 + (i * 0x30), 0x0 };
+                    var pointer = new long[] { 0x44A3528, 0x48, 0xE0 + (i * 0x30), 0x0 };
                     var trainer = await GetTradePartnerMyStatus(pointer, token).ConfigureAwait(false);
 
                     while (trainer.OT.Length == 0 && (DateTime.Now < endTime))
@@ -592,7 +597,7 @@ namespace SysBot.Pokemon
                 {
                     Title = disband ? $"**Raid canceled: [{TeraRaidCode}]**" : title,
                     Description = disband ? message : description,
-                    Color = disband ? Color.Red : hatTrick ? Color.Purple : Color.Green,
+                    Color = disband ? Discord.Color.Red : hatTrick ? Discord.Color.Purple : Discord.Color.Green,
                     ImageUrl = bytes.Length > 0 ? "attachment://zap.jpg" : default,
                 }.WithFooter(new EmbedFooterBuilder()
                 {
@@ -604,13 +609,9 @@ namespace SysBot.Pokemon
                 if (!disband && names is null)
                 {
                     if (Settings.HideRaidCode)
-                    {
                         embed.AddField("***Waiting in lobby!***", $"**Twitch Stream:**\n[Click Here for Stream Link]({Settings.RaidStreamLink})");
-                    }
                     else
-                    {
                         embed.AddField("**Waiting in lobby!**", $"Raid code: {code}");
-                    }
                 }
 
                 if (!disband && names is not null)

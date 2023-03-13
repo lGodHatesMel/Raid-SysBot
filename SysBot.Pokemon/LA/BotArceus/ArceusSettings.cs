@@ -1,4 +1,7 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Threading;
 using SysBot.Base;
 
 namespace SysBot.Pokemon
@@ -17,9 +20,6 @@ namespace SysBot.Pokemon
 
         [Category(Arceus), Description("Will hunt for the desired outbreak species if not empty. Separate species with a comma. Ex: Eevee,Rotom,Voltorb")]
         public string SpeciesToHunt { get; set; } = string.Empty;
-
-        [Category(Arceus), Description("If you have a desired IV spread enter it here, else leave empty. (EX: 31/31/31/31/31/0 for a 5IV 0SPE spread.")]
-        public int[] SearchForIVs { get; set; } = Array.Empty<int>();
 
         [Category(Arceus), Description("Special Conditions"), DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
         public SpecialFiltersCategory SpecialConditions { get; set; } = new();
@@ -111,7 +111,7 @@ namespace SysBot.Pokemon
             public ArceusAutoFill AutoFillCoords { get; set; } = ArceusAutoFill.CampZone;
 
             [Category(Arceus), Description("Enter number of shiny rolls for Static Alphas.")]
-            public ShinyRolls StaticAlphaShinyRolls { get; set; } = ShinyRolls.PerfectCharm;
+            public ShinyRolls StaticAlphaShinyRolls { get; set; } = ShinyRolls.PerfectCharm;            
 
             [Category(Arceus), Description("Enter number of advances to do.")]
             public int Advances { get; set; } = 1;
@@ -148,7 +148,7 @@ namespace SysBot.Pokemon
 
             [Category(Arceus), Description("Enter number of advances to search.")]
             public int MaxAdvancesToSearch { get; set; } = 50;
-            
+
             [Category(Arceus), Description("Wait time between teleporting and scanning.")]
             public int WaitMsBetweenTeleports { get; set; } = 1000;
 

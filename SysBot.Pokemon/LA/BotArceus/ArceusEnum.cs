@@ -14,7 +14,6 @@
         ManaphyReset = 9,
         AdvanceTimeDelay = 10,
     }
-    }
     public enum ArceusAutoFill
     {
         CampZone = 0,
