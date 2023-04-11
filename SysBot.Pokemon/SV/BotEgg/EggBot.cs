@@ -19,10 +19,6 @@ namespace SysBot.Pokemon
         private readonly EggSettingsSV Settings;
         public ICountSettings Counts => Settings;
 
-        public static CancellationTokenSource EmbedSource = new();
-        public static bool EmbedsInitialized;
-        public static (PK9?, bool) EmbedMon;
-
         public EggBotSV(PokeBotState cfg, PokeTradeHub<PK9> hub) : base(cfg)
         {
             Hub = hub;
@@ -36,7 +32,7 @@ namespace SysBot.Pokemon
         private const int InjectBox = 0;
         private const int InjectSlot = 0;
         private readonly uint EggData = 0x044AAE00;
-        private readonly uint PicnicMenu = 0x0453B020;
+        private PK9 prevShiny = new();
         private static readonly PK9 Blank = new();
         private readonly byte[] BlankVal = { 0x01 };
         private const string TextBox = "[[[[[main+44CEE30]+10]+3D8]+4C8]+30]";
@@ -88,7 +84,7 @@ namespace SysBot.Pokemon
         {
 
             await SetCurrentBox(0, token).ConfigureAwait(false);
-            await SwitchConnection.WriteBytesMainAsync(BlankVal, PicnicMenu, token).ConfigureAwait(false);
+            await SwitchConnection.WriteBytesMainAsync(BlankVal, Offsets.LoadedIntoDesiredState, token).ConfigureAwait(false);
 
             var mode = Settings.EggBotMode;
             if (mode == EggMode.WaitAndClose && Settings.ContinueAfterMatch == ContinueAfterMatch.Continue)
@@ -185,7 +181,7 @@ namespace SysBot.Pokemon
                 while (DateTime.Now < endTime)
                 {
                     var pk = await ReadPokemonSV(EggData, 344, token).ConfigureAwait(false);
-                    while (pk == null || pkprev.EncryptionConstant == pk.EncryptionConstant || (Species)pk.Species == Species.None)
+                    while (pk == prevShiny || pk == null || pkprev.EncryptionConstant == pk.EncryptionConstant || (Species)pk.Species == Species.None)
                     {
                         waiting++;
                         await Task.Delay(1_500, token).ConfigureAwait(false);
@@ -217,7 +213,7 @@ namespace SysBot.Pokemon
                         waiting = 0;
                         eggcount++;
                         var print = Hub.Config.StopConditions.GetSpecialPrintName(pk);
-                        Log($"Encounter: {eggcount}{Environment.NewLine}{print}{Environment.NewLine}Scale: {PokeSizeDetailedUtil.GetSizeRating(pk.Scale)}");
+                        Log($"Encounter: {eggcount}{Environment.NewLine}{print}");
                         Settings.AddCompletedEggs();
                         TradeExtensions<PK9>.EncounterLogs(pk, "EncounterLogPretty_EggSV.txt");
                         TradeExtensions<PK9>.EncounterScaleLogs(pk, "EncounterLogScalePretty.txt");
@@ -235,6 +231,7 @@ namespace SysBot.Pokemon
                         }
                         if (!match && Settings.ContinueAfterMatch == ContinueAfterMatch.StopExit)
                         {
+                            prevShiny = pk;
                             if (mode == EggMode.WaitAndClose)
                                 Log("Make sure to pick up your egg in the basket!");
                             else if (mode == EggMode.CollectAndDump)
@@ -290,18 +287,25 @@ namespace SysBot.Pokemon
         private async Task<bool> CheckEncounter(string print, PK9 pk)
         {
             var token = CancellationToken.None;
+            var url = string.Empty;
 
             if (!StopConditionSettings.EncounterFound(pk, DesiredMinIVs, DesiredMaxIVs, Hub.Config.StopConditions, null))
             {
                 if (Hub.Config.StopConditions.ShinyTarget is TargetShinyType.AnyShiny or TargetShinyType.StarOnly or TargetShinyType.SquareOnly && pk.IsShiny)
-                    EmbedMon = (pk, false);
+                {
+                    url = TradeExtensions<PK9>.PokeImg(pk, false, false);
+                    EchoUtil.EchoEmbed("", print, url, "", false);
+                }
 
                 return true; //No match, return true to keep scanning
             }
 
             if (Settings.MinMaxScaleOnly && pk.Scale > 0 && pk.Scale < 255)
             {
-                EmbedMon = (pk, false);
+                {
+                    url = TradeExtensions<PK9>.PokeImg(pk, false, false);
+                    EchoUtil.EchoEmbed("", print, url, "", false);
+                }
                 return true;
             }
             
@@ -315,28 +319,36 @@ namespace SysBot.Pokemon
                 _ => throw new ArgumentOutOfRangeException(),
             };
 
+            var ping = string.Empty;
             if (!string.IsNullOrWhiteSpace(Hub.Config.StopConditions.MatchFoundEchoMention))
-                msg = $"{Hub.Config.StopConditions.MatchFoundEchoMention} {msg}";
+                ping = Hub.Config.StopConditions.MatchFoundEchoMention;
 
-            Log(print);
+            if (!string.IsNullOrWhiteSpace(ping))
+                msg = $"{ping} {msg}";
+
+            Log(msg);
 
             if (Settings.OneInOneHundredOnly)
             {
                 if ((Species)pk.Species is Species.Dunsparce or Species.Tandemaus && pk.EncryptionConstant % 100 != 0)
                 {
-                    EmbedMon = (pk, false);
+                    {
+                        url = TradeExtensions<PK9>.PokeImg(pk, false, false);
+                        EchoUtil.EchoEmbed("", print, url, "", false);
+                    }
                     return true; // 1/100 condition unsatisfied, continue scanning
                 }
             }
 
             if (mode == ContinueAfterMatch.StopExit) // Stop & Exit: Condition satisfied.  Stop scanning and disconnect the bot
             {
-                EmbedMon = (pk, true);
+                url = TradeExtensions<PK9>.PokeImg(pk, false, false);
+                EchoUtil.EchoEmbed(ping, print, url, "", true);
                 return false;
             }
 
-            EmbedMon = (pk, true);
-            EchoUtil.Echo(msg);
+            url = TradeExtensions<PK9>.PokeImg(pk, false, false);
+            EchoUtil.EchoEmbed(ping, print, url, "", true);
 
             if (mode == ContinueAfterMatch.PauseWaitAcknowledge)
             {                
@@ -369,53 +381,38 @@ namespace SysBot.Pokemon
 
         private async Task<int> PicnicState(CancellationToken token)
         {
-            var Data = await SwitchConnection.ReadBytesMainAsync(PicnicMenu, 1, token).ConfigureAwait(false);
+            var Data = await SwitchConnection.ReadBytesMainAsync(Offsets.LoadedIntoDesiredState, 1, token).ConfigureAwait(false);
             return Data[0]; // 1 when in picnic, 2 in sandwich menu, 3 when eating, 2 when done eating
         }
 
         private async Task<bool> IsInPicnic(CancellationToken token)
         {
-            var Data = await SwitchConnection.ReadBytesMainAsync(PicnicMenu, 1, token).ConfigureAwait(false);
+            var Data = await SwitchConnection.ReadBytesMainAsync(Offsets.LoadedIntoDesiredState, 1, token).ConfigureAwait(false);
             return Data[0] == 0x01; // 1 when in picnic, 2 in sandwich menu, 3 when eating, 2 when done eating
         }
 
         private async Task MakeSandwich(CancellationToken token)
         {
             await Click(MINUS, 0_500, token).ConfigureAwait(false);
-            await SetStick(LEFT, 0, 30000, 0_700, token).ConfigureAwait(false); // Face up to table
+            await SetStick(LEFT, 0, 32323, 0_700, token).ConfigureAwait(false); // Face up to table
             await SetStick(LEFT, 0, 0, 0, token).ConfigureAwait(false);
             await Click(A, 1_500, token).ConfigureAwait(false);
-            await Click(A, 5_000, token).ConfigureAwait(false);
-            await Click(X, 1_500, token).ConfigureAwait(false);
+            await Click(A, 8_000, token).ConfigureAwait(false);
+            await Click(X, 2_500, token).ConfigureAwait(false);
 
             for (int i = 0; i < 0; i++) // Select first ingredient
-            {
-                if (Settings.Item1DUP == true)
-                    await Click(DUP, 0_800, token).ConfigureAwait(false);
-                else
-                    await Click(DDOWN, 0_800, token).ConfigureAwait(false);
-            }
+                await Click(Settings.Item1DUP ? DUP : DDOWN, 0_500, token).ConfigureAwait(false);
 
             await Click(A, 0_800, token).ConfigureAwait(false);
             await Click(PLUS, 0_800, token).ConfigureAwait(false);
 
             for (int i = 0; i < 4; i++) // Select second ingredient
-            {
-                if (Settings.Item2DUP == true)
-                    await Click(DUP, 0_800, token).ConfigureAwait(false);
-                else
-                    await Click(DDOWN, 0_800, token).ConfigureAwait(false);
-            }
+                await Click(Settings.Item2DUP ? DUP : DDOWN, 0_500, token).ConfigureAwait(false);
 
             await Click(A, 0_800, token).ConfigureAwait(false);
 
-            for (int i = 0; i < 1; i++) // Select third ingredient
-            {
-                if (Settings.Item3DUP == true)
-                    await Click(DUP, 0_800, token).ConfigureAwait(false);
-                else
-                    await Click(DDOWN, 0_800, token).ConfigureAwait(false);
-            }
+            for (int i = 0; i < 1; i++) // Select third ingredient            
+                await Click(Settings.Item3DUP ? DUP : DDOWN, 0_500, token).ConfigureAwait(false);
 
             await Click(A, 0_800, token).ConfigureAwait(false);
             await Click(PLUS, 0_800, token).ConfigureAwait(false);

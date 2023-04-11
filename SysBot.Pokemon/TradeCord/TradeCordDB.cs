@@ -22,7 +22,7 @@ namespace SysBot.Pokemon
             var nature = pkm.Nature;
             pkm.Nature = pkm.Species switch
             {
-                (int)Species.Toxtricity => pkm.Form > 0 ? TradeExtensions<PK8>.LowKey[Random.Next(TradeExtensions<PK8>.LowKey.Length)] : TradeExtensions<PK8>.Amped[Random.Next(TradeExtensions<PK8>.Amped.Length)],
+                (ushort)Species.Toxtricity => pkm.Form > 0 ? TradeExtensions<PK8>.LowKey[Random.Next(TradeExtensions<PK8>.LowKey.Length)] : TradeExtensions<PK8>.Amped[Random.Next(TradeExtensions<PK8>.Amped.Length)],
                 _ => Random.Next(25),
             };
 
@@ -46,7 +46,9 @@ namespace SysBot.Pokemon
             }
 
             pkm.SetSuggestedMoves();
-            pkm.SetRelearnMoves(la.GetSuggestedRelearnMoves(enc));
+            Span<ushort> relearn = stackalloc ushort[4];
+            la.GetSuggestedRelearnMoves(relearn, enc);
+            pkm.SetRelearnMoves(relearn);
             pkm.HealPP();
 
             if (!GalarFossils.Contains(pkm.Species) && !pkm.FatefulEncounter)
@@ -145,7 +147,9 @@ namespace SysBot.Pokemon
             if (!la.Valid)
             {
                 pkm.SetSuggestedMoves();
-                pkm.SetRelearnMoves(la.GetSuggestedRelearnMoves(enc));
+                Span<ushort> relearn = stackalloc ushort[4];
+                la.GetSuggestedRelearnMoves(relearn, enc);
+                pkm.SetRelearnMoves(relearn);
             }
             pkm.HealPP();
 
@@ -195,11 +199,11 @@ namespace SysBot.Pokemon
             {
                 while (true)
                 {
-                    TradeExtensions<PK8>.FormOutput(speciesID, 0, out string[] formsR);
+                    TradeExtensions<T>.FormOutput(speciesID, 0, out string[] formsR);
                     formID = (byte)Random.Next(formsR.Length);
                     if (BaseCanBeEgg(speciesID, formID, out formID, out baseSpecies) && baseSpecies > 0)
                     {
-                        formName = TradeExtensions<PK8>.FormOutput(baseSpecies, formID, out _);
+                        formName = TradeExtensions<T>.FormOutput(baseSpecies, formID, out _);
                         speciesID = baseSpecies;
                         break;
                     }
@@ -320,7 +324,10 @@ namespace SysBot.Pokemon
 
             var la = new LegalityAnalysis(shedinja);
             var enc = la.Info.EncounterMatch;
-            shedinja.SetRelearnMoves(la.GetSuggestedRelearnMoves(enc));
+
+            Span<ushort> relearn = stackalloc ushort[4];
+            la.GetSuggestedRelearnMoves(relearn, enc);
+            shedinja.SetRelearnMoves(relearn);
 
             msg = string.Empty;
             la = new LegalityAnalysis(shedinja);
@@ -488,7 +495,11 @@ namespace SysBot.Pokemon
                 if (result.EvoType is EvolutionType.LevelUpKnowMove || applyMoves)
                     EdgeCaseRelearnMoves(pk, la);
                 else if (pk.FatefulEncounter)
-                    pk.RelearnMoves = (ushort[])la.EncounterMatch.GetSuggestedRelearn(pk);
+                {
+                    Span<ushort> relearn = stackalloc ushort[4];
+                    la.GetSuggestedRelearnMoves(relearn, enc);
+                    pk.SetRelearnMoves(relearn);
+                }
             }
 
             la = new LegalityAnalysis(pk);
@@ -509,8 +520,14 @@ namespace SysBot.Pokemon
             if (typeof(T) == typeof(PK8) && (pk.Met_Location is 162 or 244))
                 return;
 
-            pk.Moves = la.GetMoveSet();
-            pk.RelearnMoves = (ushort[])la.GetSuggestedRelearnMoves(la.EncounterMatch);
+            Span<ushort> relearn = stackalloc ushort[4];
+            la.GetSuggestedRelearnMoves(relearn, la.EncounterMatch);
+            pk.SetRelearnMoves(relearn);
+
+            Span<ushort> moves = stackalloc ushort[4];
+            la.GetMoveSet(moves);
+            pk.SetMoves(moves);
+
             var indexEmpty = pk.RelearnMoves.ToList().IndexOf(0);
             if (indexEmpty is not -1)
             {
@@ -823,6 +840,12 @@ namespace SysBot.Pokemon
                 else return true;
             }
             return false;
+        }
+
+        public string[] TrainerInfoToStringArray(TCTrainerInfo info, GameVersion game)
+        {
+            var tr = new SimpleTrainerInfo(game) { TID16 = info.TID16, SID16 = info.SID16 };
+            return new string[] { $"OT: {info.OTName}\n", $"OTGender: {info.OTGender}\n", $"TID: {tr.GetTrainerTID7()}\n", $"SID: {tr.GetTrainerSID7()}\n", $"Language: {info.Language}\n" };
         }
     }
 }
