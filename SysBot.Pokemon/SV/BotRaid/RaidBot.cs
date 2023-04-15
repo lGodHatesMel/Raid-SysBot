@@ -647,10 +647,15 @@ namespace SysBot.Pokemon
             if (Settings.TakeScreenshot && !upnext)
                 bytes = await SwitchConnection.PixelPeek(token).ConfigureAwait(false) ?? Array.Empty<byte>();
 
-            string disclaimer = Settings.RaidSeedRotation.Length > 1 ? "Disclaimer: Raids are on rotation via seed injection.\n" : "";
+            //string disclaimer = Settings.RaidSeedRotation.Length > 1 ? "Disclaimer: Raids are on rotation via seed injection.\n" : "";
 
             if (upnext)
-                title = "Preparing next raid...";
+            {
+                if (Settings.HideRaidCode)
+                    title = $"Preparing next raid...\n\nGet Raid code for this raid on my Twitch Stream\n\n[Stream Link Below]\n{Settings.RaidStreamLink}";
+                else
+                    title = "Preparing next raid...";
+            }
 
             var embed = new EmbedBuilder()
             {
@@ -661,17 +666,19 @@ namespace SysBot.Pokemon
             }.WithFooter(new EmbedFooterBuilder()
             {
                 Text = $"Host: {HostSAV.OT} | Uptime: {StartTime - DateTime.Now:d\\.hh\\:mm\\:ss}\n" +
-                       $"Raids: {RaidCount} | Wins: {WinCount} | Losses: {LossCount}\n" + disclaimer +
-                       $"Powered By: RaidBotSV - {RaidBotVersion}",
+                       $"Raids: {RaidCount} | Wins: {WinCount} | Losses: {LossCount}"
+                // Text = $"Host: {HostSAV.OT} | Uptime: {StartTime - DateTime.Now:d\\.hh\\:mm\\:ss}\n" +
+                //        $"Raids: {RaidCount} | Wins: {WinCount} | Losses: {LossCount}\n" + disclaimer +
+                //        $"Powered By: RaidBotSV - {RaidBotVersion}",
             });
 
             if (!disband && names is null && !upnext)
             {
                 if (Settings.HideRaidCode)
 
-                    embed.AddField("***Waiting in lobby!***", $"**Twitch Stream:**\n[Click Here for Stream Link]({Settings.RaidStreamLink})");
+                    embed.AddField("***Waiting in lobby!\n Join Raid Now***", $"**Twitch Stream:**\n[Click Here for Stream Link]({Settings.RaidStreamLink})");
                 else
-                    embed.AddField("**Waiting in lobby!**", $"Raid code: {code}");
+                    embed.AddField("**Waiting in lobby!\n Join Raid Now**", $"Raid code: {code}");
             }
 
             if (!disband && names is not null && !upnext)
