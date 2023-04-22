@@ -158,7 +158,7 @@ namespace SysBot.Pokemon
                     Log("Clearing stored OTs");
                     for (int i = 0; i < 3; i++)
                     {
-                        var ptr = new long[] { 0x44A3528, 0x48, 0xE0 + (i * 0x30), 0x0 };
+                        var ptr = new long[] { 0x44B97D8, 0x48, 0xE0 + (i * 0x30), 0x0 };
                         await SwitchConnection.PointerPoke(new byte[16], ptr, token).ConfigureAwait(false);
                     }
                     continue;
@@ -200,7 +200,7 @@ namespace SysBot.Pokemon
                         if (nid == 0)
                             continue;
 
-                        var pointer = new long[] { 0x44A3528, 0x48, 0xE0 + (i * 0x30), 0x0 };
+                        var pointer = new long[] { 0x44B97D8, 0x48, 0xE0 + (i * 0x30), 0x0 };
                         var trainer = await GetTradePartnerMyStatus(pointer, token).ConfigureAwait(false);
 
                         if (string.IsNullOrWhiteSpace(trainer.OT))
@@ -288,19 +288,19 @@ namespace SysBot.Pokemon
         private async void OverrideTodaySeed()
         {
             var todayoverride = BitConverter.GetBytes(TodaySeed);
-            var ptr = new long[] { 0x44A98C8, 0x180, 0x48 };
+            var ptr = new long[] { 0x44BFBA8, 0x180, 0x48 };
             await SwitchConnection.PointerPoke(todayoverride, ptr, CancellationToken.None).ConfigureAwait(false);
         }
 
         private async void OverrideSeedIndex(int index)
         {
-            var ptr = new long[] { 0x44A98C8, 0x180, 0x40 + ((index + 1) * 0x20) };
+            var ptr = new long[] { 0x44BFBA8, 0x180, 0x40 + ((index + 1) * 0x20) };
             if (RotationCount >= Settings.RaidSeedRotation.Length)
                 RotationCount = 0;
             byte[] inj = BitConverter.GetBytes(Settings.RaidSeedRotation[RotationCount]);
             var currseed = await SwitchConnection.PointerPeek(4, ptr, CancellationToken.None).ConfigureAwait(false);
             Log($"Replacing {BitConverter.ToString(currseed)} with {BitConverter.ToString(inj)}");
-            var ptr2 = new long[] { 0x44A98C8, 0x180, 0x40 + ((index + 1) * 0x20) - 0x10 };
+            var ptr2 = new long[] { 0x44BFBA8, 0x180, 0x40 + ((index + 1) * 0x20) - 0x10 };
             await SwitchConnection.PointerPoke(seedList[index], ptr2, CancellationToken.None).ConfigureAwait(false);
             await Task.Delay(0_500, CancellationToken.None).ConfigureAwait(false);
             await SwitchConnection.PointerPoke(inj, ptr, CancellationToken.None).ConfigureAwait(false);
@@ -505,7 +505,7 @@ namespace SysBot.Pokemon
                         nid = BitConverter.ToUInt64(data, 0);
                     }
 
-                    var pointer = new long[] { 0x44A3528, 0x48, 0xE0 + (i * 0x30), 0x0 };
+                    var pointer = new long[] { 0x44B97D8, 0x48, 0xE0 + (i * 0x30), 0x0 };
                     var trainer = await GetTradePartnerMyStatus(pointer, token).ConfigureAwait(false);
 
                     while (trainer.OT.Length == 0 && (DateTime.Now < endTime))
