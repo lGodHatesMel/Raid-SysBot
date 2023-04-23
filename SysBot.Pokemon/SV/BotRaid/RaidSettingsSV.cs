@@ -23,7 +23,7 @@ namespace SysBot.Pokemon
         [Category(Hosting), Description("Raid embed title.")]
         public string RaidEmbedTitle { get; set; } = "Tera Raid Notification";
 
-        [Category(Hosting), Description("Raid embed description. Enter your description, species, form, and if shiny here. To do a line break use \">>\"")]
+        [Category(Hosting), Description("Raid embed description. Enter your description, species, form, and if shiny here.")]
         public List<RaidParameters> RaidEmbedParameters { get; set; } = new();
 
         [Category(Hosting), Description("When enabled, the bot will restore current day seed to tomorrow's day seed.")]
