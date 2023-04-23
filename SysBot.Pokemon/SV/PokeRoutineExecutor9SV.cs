@@ -308,7 +308,7 @@ namespace SysBot.Pokemon
 
         public async Task SetBoxPokemonEgg(PK9 pkm, int box, int slot, CancellationToken token)
         {
-            var ofs = await GetPointerAddress("[[[main+44A98C8]+130]+9B0]", token).ConfigureAwait(false);
+            var ofs = await GetPointerAddress("[[[main+44BFBA8]+130]+9B0]", token).ConfigureAwait(false);
             pkm.ResetPartyStats();
             await SwitchConnection.WriteBytesAbsoluteAsync(pkm.EncryptedPartyData, ofs, token).ConfigureAwait(false);
         }
