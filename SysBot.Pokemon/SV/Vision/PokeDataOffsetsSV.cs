@@ -31,7 +31,7 @@ namespace SysBot.Pokemon
         public ulong TeraLobby { get; } = 0x04174430;
         public ulong LoadedIntoDesiredState { get; } = 0x0453001C;
 
-        public IReadOnlyList<long> CollisionPointer { get; } = new long[] { 0x44CCA90, 0xAD8, 0x160, 0x60, 0x100 };
+        public IReadOnlyList<long> CollisionPointer { get; } = new long[] { 0x4504940, 0xAD8, 0x160, 0x60, 0x100 };
 
         public IReadOnlyList<long> SaveBlockPointer { get; } = new long[] { 0x44B5158, 0xD8, 0x0, 0x0, 0x30, 0x8, 0x00};
     }
