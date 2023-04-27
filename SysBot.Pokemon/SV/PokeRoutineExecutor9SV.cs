@@ -400,5 +400,11 @@ namespace SysBot.Pokemon
                 Size = 2490,
             };
         }
+
+        // Set up for text for stream at some point
+        private void SetRaidText(SAV9SV sav, string text) // SetRaidText($"Raid Code: {TeraRaidCode}");
+        {
+            System.IO.File.WriteAllText($"RaidTextInfo.txt", text);
+        }
     }
 }
