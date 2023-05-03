@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using static SysBot.Base.SwitchButton;
 using static SysBot.Base.SwitchStick;
 using static SysBot.Pokemon.OverworldSettingsSV;
+using static SysBot.Pokemon.RaidSettingsSV;
 using static System.Buffers.Binary.BinaryPrimitives;
 
 namespace SysBot.Pokemon
@@ -23,13 +24,18 @@ namespace SysBot.Pokemon
         public ICountSettings Counts => Settings;
         public readonly IReadOnlyList<string> UnwantedMarks;
 
+        private ulong TodaySeed;
         private ulong OverworldOffset;
+        private ulong TeraRaidBlockOffset;
         private int scanCount;
-        private readonly byte[] BlankVal = { 0x01 };
-        private byte[] PicnicItemPouch = { 0 };
+        private int PicnicVal = 0;
         private List<ulong> UnionPalsCount = new();
         private bool UnionCircleActive;
         private readonly ulong[] NIDOffsets = new ulong[3];
+        private static ulong BaseBlockKeyPointer = 0;
+        private ulong PlayerCanMoveOffset;
+        private ulong PlayerOnMountOffset;
+        private bool GameWasReset = false;
 
         public OverworldBotSV(PokeBotState cfg, PokeTradeHub<PK9> hub) : base(cfg)
         {
@@ -43,22 +49,24 @@ namespace SysBot.Pokemon
         public override async Task MainLoop(CancellationToken token)
         {
             await InitializeHardware(Hub.Config.OverworldSV, token).ConfigureAwait(false);
-
             Log("Identifying trainer data of the host console.");
             await IdentifyTrainer(token).ConfigureAwait(false);
             Log("Starting main OverworldBotSV loop.");
             Config.IterateNextRoutine();
-            while (!token.IsCancellationRequested && Config.NextRoutineType == PokeRoutineType.OverworldBot)
+
+            try
             {
-                try
+                await InitializeSessionOffsets(token).ConfigureAwait(false);
+                if (Settings.ConfigureRolloverCorrection)
                 {
-                    if (!await InnerLoop(token).ConfigureAwait(false))
-                        break;
+                    await RolloverCorrectionSV(token).ConfigureAwait(false);
+                    return;
                 }
-                catch (Exception e)
-                {
-                    Log(e.Message);
-                }
+                await ScanOverworld(token).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                Log(e.Message);
             }
 
             Log($"Ending {nameof(OverworldBotSV)} loop.");
@@ -75,42 +83,19 @@ namespace SysBot.Pokemon
             await CleanExit(CancellationToken.None).ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Return true if we need to stop looping.
-        /// </summary>
-        private async Task<bool> InnerLoop(CancellationToken token)
-        {
-            await InitializeSessionOffsets(token).ConfigureAwait(false);
-            var valid = await SwitchConnection.PointerAll(Offsets.SaveBlockPointer, token).ConfigureAwait(false);
-            var data = await SwitchConnection.ReadBytesAbsoluteAsync(valid, 4, token).ConfigureAwait(false);
-            bool saveblockvalid = BitConverter.ToString(data) == $"B9-E0-18-00";
-            if (!saveblockvalid)
-            {
-                var msg = UnionCircleActive ? "Save Block not found, ending routine." : "Save Block not found, restarting game to try again.";
-                Log(msg);
-                if (UnionCircleActive)
-                    return false;
-                else
-                {
-                    await ReOpenGame(Hub.Config, token).ConfigureAwait(false);
-                    return true;
-                }
-            }
-            Log("Save block is present, continuing routine.");
-            await ScanOverworld(token).ConfigureAwait(false);
-
-            return false;
-        }
-
         private async Task InitializeSessionOffsets(CancellationToken token)
         {
+            BaseBlockKeyPointer = await SwitchConnection.PointerAll(Offsets.BlockKeyPointer, token).ConfigureAwait(false);
             OverworldOffset = await SwitchConnection.PointerAll(Offsets.OverworldPointer, token).ConfigureAwait(false);
+            PlayerCanMoveOffset = await SwitchConnection.PointerAll(Offsets.MobilityPointer, token).ConfigureAwait(false);
+            PlayerOnMountOffset = await SwitchConnection.PointerAll(Offsets.PlayerOnMountPointer, token).ConfigureAwait(false);
             var nidPointer = new long[] { Offsets.LinkTradePartnerNIDPointer[0], Offsets.LinkTradePartnerNIDPointer[1], Offsets.LinkTradePartnerNIDPointer[2] };
             for (int p = 0; p < NIDOffsets.Length; p++)
             {
                 nidPointer[2] = Offsets.LinkTradePartnerNIDPointer[2] + (p * 0x8);
                 NIDOffsets[p] = await SwitchConnection.PointerAll(nidPointer, token).ConfigureAwait(false);
             }
+            TeraRaidBlockOffset = await SwitchConnection.PointerAll(Offsets.TeraRaidBlockPointer, token).ConfigureAwait(false);
             Log("Caching offsets complete!");
         }
         
@@ -141,78 +126,85 @@ namespace SysBot.Pokemon
             UnionCircleActive = await CheckForGuests(token).ConfigureAwait(false);
             List<PK9> encounters = new();
             List<string> prints = new();
-            var tries = 0;
-            await SwitchConnection.WriteBytesMainAsync(BlankVal, Offsets.LoadedIntoDesiredState, token).ConfigureAwait(false);
+            var dayRoll = 0;
+            PicnicVal = await PicnicState(token).ConfigureAwait(false);
+            Log($"Starting picnic value is {PicnicVal}.");
+            TodaySeed = BitConverter.ToUInt64(await SwitchConnection.ReadBytesAbsoluteAsync(TeraRaidBlockOffset, 8, token).ConfigureAwait(false), 0);
+            int status = 0;
             while (!token.IsCancellationRequested)
             {
-                if (Settings.LocationSelection is not Location.NonAreaZero && Settings.LocationSelection is not Location.TownBorder && atStation is false)
+                var currentSeed = BitConverter.ToUInt64(await SwitchConnection.ReadBytesAbsoluteAsync(TeraRaidBlockOffset, 8, token).ConfigureAwait(false), 0);
+                if (TodaySeed != currentSeed && Settings.CheckForRollover)
                 {
+                    var msg = $"Current Today Seed {currentSeed:X8} does not match Starting Today Seed: {TodaySeed:X8} after rolling back 1 day. ";
+                    if (dayRoll != 0)
+                    {
+                        Log(msg + "Stopping routine for the day changing.");
+                        return;
+                    }
+                    Log(msg);
+                    await CloseGame(Hub.Config, token).ConfigureAwait(false);
+                    await RolloverCorrectionSV(token).ConfigureAwait(false);
+                    await StartGame(Hub.Config, token).ConfigureAwait(false);
+                    await InitializeSessionOffsets(token).ConfigureAwait(false);
+
+                    dayRoll++;
+                    continue;
+                }
+
+                if (Settings.LocationSelection != Location.NonAreaZero && Settings.LocationSelection != Location.TownBorder && atStation is false)
+                {
+                    Log("Preparing for Area Zero...");
                     await NavigateToAreaZeroEntrance(token).ConfigureAwait(false);
                     await NavigateToAreaZeroPicnic(token).ConfigureAwait(false);
                 }
 
-                Log("Navigating to picnic..");                
-                await Click(X, 2_000, token).ConfigureAwait(false);
-                await Click(DRIGHT, 0_300, token).ConfigureAwait(false);
-                while (!await IsOnOverworld(OverworldOffset, token).ConfigureAwait(false))
+                if (Settings.MakeASandwich)
                 {
-                    await PressAndHold(DDOWN, 1_000, 1_000, token).ConfigureAwait(false);
-                    for (int i = 0; i < 3; i++)
-                        await Click(DDOWN, 0_400, token).ConfigureAwait(false);
-                    await Click(A, 9_500, token).ConfigureAwait(false);
-                    if (!await IsOnOverworld(OverworldOffset, token).ConfigureAwait(false))
+                    Log("Navigating to picnic..");
+                    await Click(X, 2_000, token).ConfigureAwait(false);
+                    await Click(DRIGHT, 0_800, token).ConfigureAwait(false);
+                    while (await PlayerCannotMove(token).ConfigureAwait(false))
                     {
-                        while (!await IsOnOverworld(OverworldOffset, token).ConfigureAwait(false))
-                        {
-                            if (await IsOnOverworld(OverworldOffset, token).ConfigureAwait(false))
-                                break;
+                        Log("Scrolling through menus...");
+                        await SetStick(LEFT, 0, -32000, 1_000, token).ConfigureAwait(false);
+                        await SetStick(LEFT, 0, 0, 0, token).ConfigureAwait(false);
+                        Log("Tap tap tap...");
+                        for (int i = 0; i < 3; i++)
+                            await Click(DDOWN, 0_500, token).ConfigureAwait(false);
+                        Log("Attempting to enter picnic!");
+                        await Click(A, 9_500, token).ConfigureAwait(false);
 
-                            Log("Seems like we didn't make it to picnic, attempting recovery.");
-                            for (int i = 0; i < 3; i++)
-                                await Click(B, 1_000, token).ConfigureAwait(false);
-                            tries++;
+                        if (!await PlayerCannotMove(token).ConfigureAwait(false))
+                            break;
 
-                            if (await IsOnOverworld(OverworldOffset, token).ConfigureAwait(false))
-                                break;
+                        Log("Not in picnic! Wrong menu? Attempting recovery.");
+                        await Click(B, 4_500, token).ConfigureAwait(false); // Not in picnic, press B to reset
 
-                            if (tries >= 1)
-                            {
-                                Log("Recovery failed, are we in battle? Trying to recover again...");
-                                await Click(DUP, 1_500, token).ConfigureAwait(false);
-                                await Click(B, 1_000, token).ConfigureAwait(false); // incase if we are in overworld and go into emote section
-                                await Click(A, 3_500, token).ConfigureAwait(false);
-                                await Click(R, 2_500, token).ConfigureAwait(false);
-                                await Click(X, 2_000, token).ConfigureAwait(false);
-                                await Click(DRIGHT, 0_300, token).ConfigureAwait(false);
-                            }
-
-                            if (tries == 10)
-                            {
-                                Log($"{Hub.Config.StopConditions.MatchFoundEchoMention} we failed to recover after 10 tries, stopping routine.");
-                                return;
-                            }
-                        }
                     }
+                    Log("Time for a bonus!");
+                    await MakeSandwich(token).ConfigureAwait(false);
+                    Log("Continuing the hunt..");
                 }
-                Log("Time for a bonus!");
-                await MakeSandwich(token).ConfigureAwait(false);
-                Log("Continuing the hunt..");
 
                 var wait = TimeSpan.FromMinutes(30);
                 var endTime = DateTime.Now + wait;
                 while (DateTime.Now < endTime)
                 {
-                    if (Settings.LocationSelection is not Location.NonAreaZero && Settings.LocationSelection is not Location.TownBorder && atStation is false)
+                    if (Settings.LocationSelection != Location.NonAreaZero && Settings.LocationSelection != Location.TownBorder && atStation is false)
                     {
                         await RepositionToGate(token).ConfigureAwait(false);
                         await NavigateToResearchStation(token).ConfigureAwait(false);
                         if (Settings.LocationSelection is Location.SecretCave)
+                        {
+                            await Click(PLUS, 1_500, token).ConfigureAwait(false);
                             await CollideToCave(token).ConfigureAwait(false);
+                        }
 
                         atStation = true;
                     }
 
-                    if (Settings.LocationSelection is not Location.NonAreaZero && Settings.LocationSelection is not Location.TownBorder && atStation is false)
+                    if (Settings.LocationSelection != Location.NonAreaZero && Settings.LocationSelection != Location.TownBorder && atStation is false)
                     {
                         await Task.Delay(1_500, token).ConfigureAwait(false);
                         if (!await IsOnOverworld(OverworldOffset, token).ConfigureAwait(false))
@@ -229,8 +221,54 @@ namespace SysBot.Pokemon
                         }
                     }
 
+                    currentSeed = BitConverter.ToUInt64(await SwitchConnection.ReadBytesAbsoluteAsync(TeraRaidBlockOffset, 8, token).ConfigureAwait(false), 0);
+                    if (TodaySeed != currentSeed && Settings.CheckForRollover)
+                    {
+                        var msg = $"Current Today Seed {currentSeed:X8} does not match Starting Today Seed: {TodaySeed:X8} after rolling back 1 day. ";
+                        if (dayRoll != 0)
+                        {
+                            Log(msg + "Stopping routine for the day changing.");
+                            return;
+                        }
+                        Log(msg);
+                        await CloseGame(Hub.Config, token).ConfigureAwait(false);
+                        await RolloverCorrectionSV(token).ConfigureAwait(false);                        
+                        await StartGame(Hub.Config, token).ConfigureAwait(false);
+                        await InitializeSessionOffsets(token).ConfigureAwait(false);
+
+                        if (dayRoll == 0)
+                            dayRoll++;
+                        else
+                            dayRoll = 0;
+                        wait = TimeSpan.FromMinutes(30);
+                        endTime = DateTime.Now + wait;
+                        status = 0;
+                        continue;
+                    }
+
+                    if (await PlayerCannotMove(token).ConfigureAwait(false) && Settings.LocationSelection != Location.SecretCave || await PlayerCannotMove(token).ConfigureAwait(false) && await PlayerNotOnMount(token).ConfigureAwait(false) && Settings.LocationSelection == Location.SecretCave)
+                    {
+                        Log("We can't move! Are we in battle? Resetting game to attempt recovery and positioning.");
+                        await ReOpenGame(Hub.Config, token).ConfigureAwait(false);
+
+                        if (Settings.LocationSelection == Location.SecretCave)
+                        {
+                            Log("Attempting to reposition map from reset...");
+                            await Click(Y, 2_000, token).ConfigureAwait(false);
+                            await Click(RSTICK, 1_000, token).ConfigureAwait(false);
+                            await Click(B, 2_500, token).ConfigureAwait(false);
+                        }
+
+                        GameWasReset = true;
+                    }
+
+                    if (GameWasReset)
+                        break;
+
                     await SVSaveGameOverworld(token).ConfigureAwait(false);
-                    var block = await ReadBlock(Blocks.Overworld, token).ConfigureAwait(false);
+                    var block = await ReadBlock(BaseBlockKeyPointer, Blocks.Overworld, status is 0, token).ConfigureAwait(false);
+                    if (status is 0)
+                        status++;
                     for (int i = 0; i < 20; i++)
                     {
                         var data = block.Slice(0 + (i * 0x1D4), 0x157);
@@ -245,7 +283,7 @@ namespace SysBot.Pokemon
                         prints.Add(result);
                     }                    
 
-                    if (encounters.Count < 1 && !await IsOnOverworld(OverworldOffset, token).ConfigureAwait(false))
+                    if (encounters.Count < 1 && !await IsOnOverworld(OverworldOffset, token).ConfigureAwait(false) && Settings.LocationSelection != Location.NonAreaZero && Settings.LocationSelection != Location.TownBorder)
                     {
                         Log("No encounters present, are we in a lab? Attempting recovery");
                         await Click(B, 1_500, token).ConfigureAwait(false);
@@ -290,10 +328,27 @@ namespace SysBot.Pokemon
                     await task.ConfigureAwait(false);
 
                 }
-                if (Settings.LocationSelection is not Location.NonAreaZero)
+
+                if (Settings.LocationSelection != Location.NonAreaZero && Settings.LocationSelection != Location.TownBorder && GameWasReset == false)
                 {
                     await ReturnFromStation(token).ConfigureAwait(false);
                     atStation = false;
+                }
+
+                if (!Settings.MakeASandwich && GameWasReset == false)
+                {
+                    var ping = string.Empty;
+                    if (!string.IsNullOrWhiteSpace(Hub.Config.StopConditions.MatchFoundEchoMention))
+                        ping = Hub.Config.StopConditions.MatchFoundEchoMention;
+
+                    Log($"{ping} 30 minutes have passed and you chose not to make a sandwich, stopping routine.");
+                    return;
+                }
+
+                if (GameWasReset == true)
+                {
+                    Log("Game was reset for recovery, restarting routine.");
+                    GameWasReset = false;
                 }
             }
         }
@@ -337,12 +392,52 @@ namespace SysBot.Pokemon
                 return true; //No match, return true to keep scanning
             }
 
-            if (Settings.MinMaxScaleOnly && pk.Scale > 0 && pk.Scale < 255)
+            var ping = string.Empty;
+            if (!string.IsNullOrWhiteSpace(Hub.Config.StopConditions.MatchFoundEchoMention))
+                ping = Hub.Config.StopConditions.MatchFoundEchoMention;
+
+            if (Settings.StopOnOneInOneHundredOnly)
             {
-                Log("Undesired size found..");
-                url = TradeExtensions<PK9>.PokeImg(pk, false, false);
-                EchoUtil.EchoEmbed("", print, url, markurl, false);
-                return true;
+                if ((Species)pk.Species is Species.Dunsparce or Species.Dudunsparce or Species.Tandemaus or Species.Maushold && pk.EncryptionConstant % 100 != 0)
+                {
+                    string segmsg = (Species)pk.Species is Species.Dunsparce or Species.Dudunsparce ? "3-Segment" : "Family Of 3";
+                    string res3 = $"A non-special {segmsg} {(Species)pk.Species} has been found...\n";
+                    Log(res3);
+                    url = TradeExtensions<PK9>.PokeImg(pk, false, false);
+                    EchoUtil.EchoEmbed("", print, url, "", false);
+                    return true; // 1/100 condition unsatisfied, continue scanning
+                }
+
+                else if ((Species)pk.Species is Species.Dunsparce or Species.Dudunsparce or Species.Tandemaus or Species.Maushold && pk.EncryptionConstant % 100 == 0)
+                {
+                    string segmsg = (Species)pk.Species is Species.Dunsparce or Species.Dudunsparce ? "3-Segment" : "Family Of 3";
+                    string res3 = $"A special {segmsg} {(Species)pk.Species} has been found!\n";
+                    Log(res3);
+                    url = TradeExtensions<PK9>.PokeImg(pk, false, false);
+                    EchoUtil.EchoEmbed(ping, res3 + print, url, markurl, false);
+                    return false;
+                }
+            }
+
+            if (Settings.StopOnMinMaxScale)
+            {
+                if (pk.Scale > 0 && pk.Scale < 255)
+                {
+                    Log("Undesired size found..");
+                    url = TradeExtensions<PK9>.PokeImg(pk, false, false);
+                    EchoUtil.EchoEmbed("", print, url, markurl, false);
+                    return true;
+                }
+
+                else if (pk.Scale is 0 or 255)
+                {
+                    string scalemsg = pk.Scale is 0 ? "XXXS" : "XXXL";
+                    string ress = $"A special sized {scalemsg} {(Species)pk.Species} has been found!\n";
+                    Log(ress);
+                    url = TradeExtensions<PK9>.PokeImg(pk, false, false);
+                    EchoUtil.EchoEmbed(ping, ress + print, url, markurl, false);
+                    return false;
+                }
             }
 
             var text = Settings.SpeciesToHunt.Replace(" ", "");
@@ -377,10 +472,6 @@ namespace SysBot.Pokemon
                 _ => throw new ArgumentOutOfRangeException(),
             };
 
-            var ping = string.Empty;
-            if (!string.IsNullOrWhiteSpace(Hub.Config.StopConditions.MatchFoundEchoMention))
-                ping = Hub.Config.StopConditions.MatchFoundEchoMention;
-
             if (!string.IsNullOrWhiteSpace(ping))
                 msg = $"{ping} {msg}";
 
@@ -405,6 +496,8 @@ namespace SysBot.Pokemon
                 while (IsWaiting)
                     await Task.Delay(1_000, token).ConfigureAwait(false);
 
+                for (int i = 0; i < 2; i++)
+                    await Click(B, 0_500, token).ConfigureAwait(false);
                 await Click(HOME, 1_000, token).ConfigureAwait(false);
             }
 
@@ -430,8 +523,9 @@ namespace SysBot.Pokemon
         private async Task MakeSandwich(CancellationToken token)
         {
             await Click(MINUS, 0_500, token).ConfigureAwait(false);
-            await SetStick(LEFT, 0, 32323, 0_300, token).ConfigureAwait(false); // Face up to table
+            await SetStick(LEFT, 0, 32323, 0_700, token).ConfigureAwait(false); // Face up to table
             await SetStick(LEFT, 0, 0, 0, token).ConfigureAwait(false);
+            await Task.Delay(1_000, token).ConfigureAwait(false);
             await Click(A, 1_500, token).ConfigureAwait(false);
             if (UnionCircleActive)
                 await Click(A, 1_500, token).ConfigureAwait(false);
@@ -483,7 +577,7 @@ namespace SysBot.Pokemon
                 await SetStick(LEFT, 0, 30000, 1_000, token).ConfigureAwait(false); // Scroll to the absolute top
             await SetStick(LEFT, 0, 0, 0, token).ConfigureAwait(false);
 
-            while (await PicnicState(token).ConfigureAwait(false) == 2) // Until we start eating the sandwich
+            while (await PicnicState(token).ConfigureAwait(false) == PicnicVal + 1) // Until we start eating the sandwich
             {
                 await SetStick(LEFT, 0, -5000, 0_300, token).ConfigureAwait(false); // Scroll down slightly and press A a few times; repeat until un-stuck
                 await SetStick(LEFT, 0, 0, 0, token).ConfigureAwait(false);
@@ -494,13 +588,11 @@ namespace SysBot.Pokemon
 
             Log("Eating our sandwich..");
 
-            while (await PicnicState(token).ConfigureAwait(false) == 3)  // eating the sandwich
+            while (await PicnicState(token).ConfigureAwait(false) == PicnicVal + 2)  // eating the sandwich
                 await Task.Delay(1_000, token).ConfigureAwait(false);
 
-            while (!await IsInPicnic(token).ConfigureAwait(false)) // Acknowledge the sandwich and return to the picnic
-            {
-                await Click(A, 5_000, token).ConfigureAwait(false); // Wait a long time to give the flag a chance to update and avoid sandwich re-entry
-            }
+            while (await PicnicState(token).ConfigureAwait(false) != PicnicVal) // Acknowledge the sandwich and return to the picnic            
+                await Click(A, 5_000, token).ConfigureAwait(false); // Wait a long time to give the flag a chance to update and avoid sandwich re-entry            
 
             await Task.Delay(2_500, token).ConfigureAwait(false);
             await SetStick(LEFT, 0, -10000, 1_000, token).ConfigureAwait(false); // Face down to basket
@@ -508,9 +600,8 @@ namespace SysBot.Pokemon
             await Task.Delay(1_000, token).ConfigureAwait(false);
             await SetStick(LEFT, 0, 5000, 0_600, token).ConfigureAwait(false); // Face up to basket
             await SetStick(LEFT, 0, 0, 0, token).ConfigureAwait(false);
-            await Task.Delay(1_000, token).ConfigureAwait(false);
+            await Task.Delay(1_500, token).ConfigureAwait(false);
             Log("Returning to overworld..");
-            //for (int i = 0; i < 2; i++)
             await Click(Y, 2_500, token).ConfigureAwait(false);
             await Click(A, 3_500, token).ConfigureAwait(false);
             for (int i = 0; i < 10; i++)
@@ -523,10 +614,16 @@ namespace SysBot.Pokemon
             return Data[0]; // 1 when in picnic, 2 in sandwich menu, 3 when eating, 2 when done eating
         }
 
-        private async Task<bool> IsInPicnic(CancellationToken token)
+        private async Task<bool> PlayerCannotMove(CancellationToken token)
         {
-            var Data = await SwitchConnection.ReadBytesMainAsync(Offsets.LoadedIntoDesiredState, 1, token).ConfigureAwait(false);
-            return Data[0] == 0x01; // 1 when in picnic, 2 in sandwich menu, 3 when eating, 2 when done eating
+            var Data = await SwitchConnection.ReadBytesAbsoluteAsync(PlayerCanMoveOffset, 1, token).ConfigureAwait(false);
+            return Data[0] == 0x00; // 0 nope else yes
+        }
+
+        private async Task<bool> PlayerNotOnMount(CancellationToken token)
+        {
+            var Data = await SwitchConnection.ReadBytesAbsoluteAsync(PlayerOnMountOffset, 1, token).ConfigureAwait(false);
+            return Data[0] == 0x00; // 0 nope else yes
         }
 
         private async Task Hold(SwitchButton b, int delay, CancellationToken token)
@@ -687,7 +784,7 @@ namespace SysBot.Pokemon
             for (int i = 0; i < 15; i++)
                 await SwitchConnection.PointerPoke(X1, Offsets.CollisionPointer, token).ConfigureAwait(false);
 
-            await Task.Delay(6_000, token).ConfigureAwait(false);
+            await Task.Delay(3_000, token).ConfigureAwait(false);
         }
 
         private async Task CollideToTheSpot(CancellationToken token)
@@ -709,7 +806,7 @@ namespace SysBot.Pokemon
             for (int i = 0; i < 15; i++)
                 await SwitchConnection.PointerPoke(X1, Offsets.CollisionPointer, token).ConfigureAwait(false);
 
-            await Task.Delay(6_000, token).ConfigureAwait(false);
+            await Task.Delay(3_000, token).ConfigureAwait(false);
         }
 
         public async Task DownUp(CancellationToken token)
@@ -717,12 +814,56 @@ namespace SysBot.Pokemon
             var ydown = (ushort)Hub.Config.OverworldSV.MovementFilters.MoveDownMs;
             var yup = (ushort)Hub.Config.OverworldSV.MovementFilters.MoveUpMs;
 
+            await Click(B, 1_500, token).ConfigureAwait(false);
             await SetStick(LEFT, 0, -32323, ydown, token).ConfigureAwait(false); //↓
             await SetStick(LEFT, 0, 0, 0_500, token).ConfigureAwait(false);
             await Task.Delay(0_250, token).ConfigureAwait(false);
             await SetStick(LEFT, 0, 32323, yup, token).ConfigureAwait(false); // ↑
             await SetStick(LEFT, 0, 0, 0_500, token).ConfigureAwait(false);
             await Task.Delay(0_250, token).ConfigureAwait(false);
+            await Click(X, 2_500, token).ConfigureAwait(false);
+        }
+
+        private async Task RolloverCorrectionSV(CancellationToken token)
+        {
+            Log("Applying rollover correction.");
+            var scrollroll = Settings.DateTimeFormat switch
+            {
+                DTFormat.DDMMYY => 0,
+                DTFormat.YYMMDD => 2,
+                _ => 1,
+            };
+
+            for (int i = 0; i < 2; i++)
+                await Click(B, 0_150, token).ConfigureAwait(false);
+
+            for (int i = 0; i < 2; i++)
+                await Click(DRIGHT, 0_150, token).ConfigureAwait(false);
+            await Click(DDOWN, 0_150, token).ConfigureAwait(false);
+            await Click(DRIGHT, 0_150, token).ConfigureAwait(false);
+            await Click(A, 1_250, token).ConfigureAwait(false); // Enter settings
+
+            await PressAndHold(DDOWN, 2_000, 0_250, token).ConfigureAwait(false); // Scroll to system settings
+            await Click(A, 1_250, token).ConfigureAwait(false);
+
+            await PressAndHold(DDOWN, Settings.HoldTimeForRollover, 1_000, token).ConfigureAwait(false);
+            await Click(DUP, 0_500, token).ConfigureAwait(false);
+
+            await Click(A, 1_250, token).ConfigureAwait(false);
+            for (int i = 0; i < 2; i++)
+                await Click(DDOWN, 0_150, token).ConfigureAwait(false);
+            await Click(A, 0_500, token).ConfigureAwait(false);
+            for (int i = 0; i < scrollroll; i++) // 0 to roll day for DDMMYY, 1 to roll day for MMDDYY, 3 to roll hour
+                await Click(DRIGHT, 0_200, token).ConfigureAwait(false);
+
+            await Click(DDOWN, 0_200, token).ConfigureAwait(false);
+
+            for (int i = 0; i < 8; i++) // Mash DRIGHT to confirm
+                await Click(DRIGHT, 0_200, token).ConfigureAwait(false);
+
+            await Click(A, 0_500, token).ConfigureAwait(false); // Confirm date/time change
+            await Click(HOME, 1_000, token).ConfigureAwait(false); // Back to title screen
+            Log("Done.");
         }
     }
 }

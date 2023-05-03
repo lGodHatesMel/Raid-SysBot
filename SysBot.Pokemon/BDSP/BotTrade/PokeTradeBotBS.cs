@@ -247,6 +247,8 @@ namespace SysBot.Pokemon
             if (toSend.Species != 0)
                 await SetBoxPokemonAbsolute(BoxStartOffset, toSend, token, sav).ConfigureAwait(false);
 
+            TradeExtensions<PB8>.BDSPTrade = toSend;
+
             // Enter Union Room and set ourselves up as Trading.
             if (!await EnterUnionRoomWithCode(poke.Type, poke.Code, token).ConfigureAwait(false))
             {
@@ -300,7 +302,7 @@ namespace SysBot.Pokemon
             await Task.Delay(2_000, token).ConfigureAwait(false);
 
             // Confirm Box 1 Slot 1
-            if (poke.Type == PokeTradeType.Specific || poke.Type == PokeTradeType.TradeCord || poke.Type == PokeTradeType.SupportTrade)
+            if (poke.Type == PokeTradeType.Specific || poke.Type == PokeTradeType.SupportTrade)
             {
                 for (int i = 0; i < 5; i++)
                     await Click(A, 0_500, token).ConfigureAwait(false);
@@ -386,8 +388,6 @@ namespace SysBot.Pokemon
                 counts.AddCompletedFixOTs();
             else if (poke.Type == PokeTradeType.SupportTrade)
                 counts.AddCompletedSupportTrades();
-            else if (poke.Type == PokeTradeType.TradeCord)
-                counts.AddCompletedTradeCords();
             else
                 counts.AddCompletedTrade();
 
@@ -395,7 +395,7 @@ namespace SysBot.Pokemon
             {
                 var subfolder = poke.Type.ToString().ToLower();
                 DumpPokemon(DumpSetting.DumpFolder, subfolder, received); // received by bot
-                if (poke.Type is PokeTradeType.Specific or PokeTradeType.Clone or PokeTradeType.FixOT or PokeTradeType.SupportTrade or PokeTradeType.TradeCord)
+                if (poke.Type is PokeTradeType.Specific or PokeTradeType.Clone or PokeTradeType.FixOT or PokeTradeType.SupportTrade)
                     DumpPokemon(DumpSetting.DumpFolder, "traded", toSend); // sent to partner
             }
         }
