@@ -193,6 +193,7 @@ namespace SysBot.Pokemon
             {
                 int b = 0;
                 Log("Preparing for battle!");
+                System.IO.File.WriteAllText($"RaidCode.txt", String.Empty);
                 while (!await IsInRaid(token).ConfigureAwait(false))
                     await Click(A, 1_000, token).ConfigureAwait(false);
 
@@ -711,7 +712,7 @@ namespace SysBot.Pokemon
             {
                 Title = disband ? $"**Raid canceled: [{TeraRaidCode}]**" : title,
                 Description = disband ? message : description,
-                Color = disband ? Color.Red : hatTrick ? Color.Purple : Color.Green,
+                Color = disband ? Color.Red : hatTrick ? Color.Blue : Color.Purple,
                 ImageUrl = bytes.Length > 0 ? "attachment://zap.jpg" : default,
             }.WithFooter(new EmbedFooterBuilder()
             {
@@ -749,6 +750,7 @@ namespace SysBot.Pokemon
             var form = string.Empty;
 
             Log($"Rotation Count: {RotationCount} | Species is {Settings.RaidEmbedParameters[RotationCount].Species}");
+            System.IO.File.WriteAllText($"RaidSpecies.txt", $"{Settings.RaidEmbedParameters[RotationCount].Species}-{Settings.RaidEmbedParameters[RotationCount].SpeciesForm}");
             PK9 pk = new()
             {
                 Species = (ushort)Settings.RaidEmbedParameters[RotationCount].Species,
@@ -862,6 +864,7 @@ namespace SysBot.Pokemon
             await Click(A, 0_600, token).ConfigureAwait(false);
 
             Log("Restarting the game!");
+            System.IO.File.WriteAllText($"RaidSpecies.txt", "Starting New Raid");
 
             // Switch Logo and game load screen
             await Task.Delay(16_000 + timing.ExtraTimeLoadGame, token).ConfigureAwait(false);
