@@ -28,7 +28,6 @@ namespace SysBot.Pokemon
             Hub = hub;
             Settings = hub.Config.RaidSV;
         }
-        //private const int AzureBuildID = 408;
         private int RaidsAtStart;
         private int RaidCount;
         private int WinCount;
@@ -255,6 +254,7 @@ namespace SysBot.Pokemon
             }
 
             Log("Raid lobby disbanded!");
+            System.IO.File.WriteAllText($"RaidSpecies.txt", "Finishing Raid...");
             await Click(B, 0_500, token).ConfigureAwait(false);
             await Click(B, 0_500, token).ConfigureAwait(false);
             await Click(DDOWN, 0_500, token).ConfigureAwait(false);
@@ -750,7 +750,11 @@ namespace SysBot.Pokemon
             var form = string.Empty;
 
             Log($"Rotation Count: {RotationCount} | Species is {Settings.RaidEmbedParameters[RotationCount].Species}");
-            System.IO.File.WriteAllText($"RaidSpecies.txt", $"{Settings.RaidEmbedParameters[RotationCount].Species}-{Settings.RaidEmbedParameters[RotationCount].SpeciesForm}");
+            if (Settings.RaidEmbedParameters[RotationCount].IsShiny == true)
+                System.IO.File.WriteAllText($"RaidSpecies.txt", $"Shiny {Settings.RaidEmbedParameters[RotationCount].Species}");
+            else
+                System.IO.File.WriteAllText($"RaidSpecies.txt", $"{Settings.RaidEmbedParameters[RotationCount].Species}");
+
             PK9 pk = new()
             {
                 Species = (ushort)Settings.RaidEmbedParameters[RotationCount].Species,
@@ -864,7 +868,7 @@ namespace SysBot.Pokemon
             await Click(A, 0_600, token).ConfigureAwait(false);
 
             Log("Restarting the game!");
-            System.IO.File.WriteAllText($"RaidSpecies.txt", "Starting New Raid");
+            System.IO.File.WriteAllText($"RaidSpecies.txt", "Preparing next raid...");
 
             // Switch Logo and game load screen
             await Task.Delay(16_000 + timing.ExtraTimeLoadGame, token).ConfigureAwait(false);
