@@ -18,6 +18,9 @@ namespace SysBot.Pokemon
         [Category(Files), Description("Destination folder: where all received PKM files are dumped to.")]
         public string DumpFolder { get; set; } = string.Empty;
 
+        [Category(Files), Description("Destination folder: where all raid files are.")]
+        public string RaidFilesFolder { get; set; } = string.Empty;
+
         public void CreateDefaults(string path)
         {
             var dump = Path.Combine(path, "dump");
@@ -28,6 +31,10 @@ namespace SysBot.Pokemon
             var distribute = Path.Combine(path, "distribute");
             Directory.CreateDirectory(distribute);
             DistributeFolder = distribute;
+
+            var RaidFiles = Path.Combine(path, "RaidFiles");
+            Directory.CreateDirectory(RaidFiles);
+            RaidFilesFolder = RaidFiles;
         }
     }
 }

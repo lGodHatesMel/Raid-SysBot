@@ -665,12 +665,12 @@ namespace SysBot.Pokemon.Discord
             int type = int.Parse(content);
 
             var description = string.Empty;
-            var filepath = "bodyparam.txt";
+            var filepath = "RaidFiles\bodyparam.txt";
             if (File.Exists(filepath))
                 description = File.ReadAllText(filepath);
 
             var data = string.Empty;
-            var pkpath = "pkparam.txt";
+            var pkpath = "RaidFiles\pkparam.txt";
             if (File.Exists(pkpath))
                 data = File.ReadAllText(pkpath);
 
