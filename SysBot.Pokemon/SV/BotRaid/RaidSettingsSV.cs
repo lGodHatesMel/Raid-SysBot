@@ -20,7 +20,10 @@ namespace SysBot.Pokemon
         [Category(Hosting), Description("Amount of raids before updating the ban list. If you want the global ban list off, set this to -1.")]
         public int RaidsBetweenUpdate { get; set; } = 3;
 
-        [Category(Hosting), Description("Raid embed description. Enter your description, species, form, and if shiny here.")]
+        [Category(Hosting), Description("If true, the bot will attempt to auto-generate Raid Parameters from the \"raidsv\" folder on botstart.")]
+        public bool GenerateParametersFromFile { get; set; } = true;
+
+        [Category(Hosting), Description("Raid embed parameters.")]
         public List<RaidParameters> RaidEmbedParameters { get; set; } = new();
 
         [Category(FeatureToggle), Description("If true, the bot will hide the raid code in the embed.")]
@@ -33,7 +36,7 @@ namespace SysBot.Pokemon
         public int CatchLimit { get; set; } = 0;
 
         [Category(Hosting), Description("Minimum amount of seconds to wait before starting a raid.")]
-        public int TimeToWait { get; set; } = 90;
+        public int TimeToWait { get; set; } = 120;
 
         [Category(FeatureToggle), Description("If true, the bot will attempt take screenshots for the Raid Embeds. If you experience crashes often about \"Size/Parameter\" try setting this to false.")]
         public bool TakeScreenshot { get; set; } = false;
@@ -42,7 +45,7 @@ namespace SysBot.Pokemon
         public RemoteControlAccessList RaiderBanList { get; set; } = new() { AllowIfEmpty = false };
 
         [Category(Hosting), Description("When enabled, the bot will restore current day seed to tomorrow's day seed.")]
-        public bool KeepDaySeed { get; set; } = false;
+        public bool KeepDaySeed { get; set; } = true;
 
         [Category(FeatureToggle), Description("Set your Switch Date/Time format in the Date/Time settings. The day will automatically rollback by 1 if the Date changes.")]
         public DTFormat DateTimeFormat { get; set; } = DTFormat.MMDDYY;
@@ -96,8 +99,10 @@ namespace SysBot.Pokemon
             public TeraCrystalType CrystalType { get; set; } = TeraCrystalType.Base;
             public bool IsCoded { get; set; } = true;
             public bool SpriteAlternateArt { get; set; } = false;
-            public uint Seed { get; set; } = 0x0;
+            public string Seed { get; set; } = string.Empty;
             public string[] PartyPK { get; set; } = Array.Empty<string>();
+            public bool ActiveInRotation { get; set; } = true;
+            public bool IsSet { get; set; } = false;
         }
 
         public enum TeraCrystalType: int

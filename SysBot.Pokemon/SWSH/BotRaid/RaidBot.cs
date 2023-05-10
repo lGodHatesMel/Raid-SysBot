@@ -37,17 +37,24 @@ namespace SysBot.Pokemon
                 Log("Time to wait must be between 0 and 180 seconds.");
                 return;
             }
-            
-            Log("Identifying trainer data of the host console.");
-            await IdentifyTrainer(token).ConfigureAwait(false);
-            await InitializeSessionOffsets(token).ConfigureAwait(false);
 
-            await InitializeHardware(Settings, token).ConfigureAwait(false);
+            try
+            {
+                Log("Identifying trainer data of the host console.");
+                await IdentifyTrainer(token).ConfigureAwait(false);
+                await InitializeSessionOffsets(token).ConfigureAwait(false);
 
-            Log("Starting main RaidBot loop.");
-            await InnerLoop(token).ConfigureAwait(false);
+                await InitializeHardware(Settings, token).ConfigureAwait(false);
 
-            Log($"Ending {nameof(RaidBotSV)} loop.");
+                Log("Starting main RaidBot loop.");
+                await InnerLoop(token).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                Log(e.Message);
+            }
+
+            Log($"Ending {nameof(RaidBot)} loop.");
             await HardStop().ConfigureAwait(false);
         }
 
