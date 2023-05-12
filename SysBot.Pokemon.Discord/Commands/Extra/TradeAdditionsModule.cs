@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using PermuteMMO.Lib;
 using PKHeX.Core;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -665,12 +666,12 @@ namespace SysBot.Pokemon.Discord
             int type = int.Parse(content);
 
             var description = string.Empty;
-            var filepath = "RaidFiles\bodyparam.txt";
+            var filepath = "RaidFiles\\bodyparam.txt";
             if (File.Exists(filepath))
                 description = File.ReadAllText(filepath);
 
             var data = string.Empty;
-            var pkpath = "RaidFiles\pkparam.txt";
+            var pkpath = "RaidFiles\\pkparam.txt";
             if (File.Exists(pkpath))
                 data = File.ReadAllText(pkpath);
 
@@ -746,6 +747,32 @@ namespace SysBot.Pokemon.Discord
             }
         }
 
+        [Command("togglecodeRaidParams")]
+        [Alias("tcrp", "toggleRaidCode")]
+        [Summary("Toggles code raid parameter.")]
+        [RequireSudo]
+        public async Task ToggleCodeRaidParam([Summary("Seed")] string seed)
+        {
+
+            var deactivate = uint.Parse(seed, NumberStyles.AllowHexSpecifier);
+            var list = SysCord<T>.Runner.Hub.Config.RaidSV.RaidEmbedParameters;
+            foreach (var s in list)
+            {
+                var def = uint.Parse(s.Seed, NumberStyles.AllowHexSpecifier);
+                if (def == deactivate)
+                {
+                    if (s.IsCoded == true)
+                        s.IsCoded = false;
+                    else
+                        s.IsCoded = true;
+                    var m = s.IsCoded == true ? "coded" : "uncoded";
+                    var msg = $"Raid for {s.Species} | {s.Seed:X8} is now {m}!";
+                    await ReplyAsync(msg).ConfigureAwait(false);
+                    return;
+                }
+            }
+        }
+
         [Command("changeRaidParamTitle")]
         [Alias("crpt","crt")]
         [Summary("Adds new raid parameter.")]
@@ -789,7 +816,7 @@ namespace SysBot.Pokemon.Discord
                 x.Value = msg;
                 x.IsInline = false;
             });
-            await ReplyAsync("These are the raids currently in the rotations list:", embed: embed.Build()).ConfigureAwait(false);
+            await ReplyAsync("These are the raids currently in the list:", embed: embed.Build()).ConfigureAwait(false);
         }
     }
 }
