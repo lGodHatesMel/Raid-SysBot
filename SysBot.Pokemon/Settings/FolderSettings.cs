@@ -18,8 +18,8 @@ namespace SysBot.Pokemon
         [Category(Files), Description("Destination folder: where all received PKM files are dumped to.")]
         public string DumpFolder { get; set; } = string.Empty;
 
-        [Category(Files), Description("Destination folder: where all raid files are.")]
-        public string RaidFilesFolder { get; set; } = string.Empty;
+        [Category(Files), Description("Destination folder: where all SV raid files are.")]
+        public string RaidFilesSVFolder { get; set; } = string.Empty;
 
         public void CreateDefaults(string path)
         {
@@ -32,9 +32,25 @@ namespace SysBot.Pokemon
             Directory.CreateDirectory(distribute);
             DistributeFolder = distribute;
 
-            var RaidFiles = Path.Combine(path, "RaidFiles");
-            Directory.CreateDirectory(RaidFiles);
-            RaidFilesFolder = RaidFiles;
+            var RaidFilesSV = Path.Combine(path, "RaidFilesSV");
+            Directory.CreateDirectory(RaidFilesSV);
+            RaidFilesSVFolder = RaidFilesSV;
+
+            var raidsvFilePath = Path.Combine(RaidFilesSVFolder, "raidsv.txt");
+            var pkparamFilePath = Path.Combine(RaidFilesSVFolder, "pkparam.txt");
+            var bodyparamFilePath = Path.Combine(RaidFilesSVFolder, "bodyparam.txt");
+
+            if (!File.Exists(raidsvFilePath)) {
+                File.Create(raidsvFilePath).Dispose();
+            }
+
+            if (!File.Exists(pkparamFilePath)) {
+                File.Create(pkparamFilePath).Dispose();
+            }
+
+            if (!File.Exists(bodyparamFilePath)) {
+                File.Create(bodyparamFilePath).Dispose();
+            }
         }
     }
 }
