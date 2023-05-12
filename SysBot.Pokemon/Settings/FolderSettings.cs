@@ -33,23 +33,37 @@ namespace SysBot.Pokemon
             DistributeFolder = distribute;
 
             var RaidFilesSV = Path.Combine(path, "RaidFilesSV");
-            Directory.CreateDirectory(RaidFilesSV);
-            RaidFilesSVFolder = RaidFilesSV;
+            Directory.CreateDirectory(RaidFilesSV); 
 
-            var raidsvFilePath = Path.Combine(RaidFilesSVFolder, "raidsv.txt");
-            var pkparamFilePath = Path.Combine(RaidFilesSVFolder, "pkparam.txt");
-            var bodyparamFilePath = Path.Combine(RaidFilesSVFolder, "bodyparam.txt");
+            var raidsvFilePath = Path.Combine(path, "raidsv.txt");
+            var pkparamFilePath = Path.Combine(path, "pkparam.txt");
+            var bodyparamFilePath = Path.Combine(path, "bodyparam.txt"); 
 
-            if (!File.Exists(raidsvFilePath)) {
-                File.Create(raidsvFilePath).Dispose();
+            if (File.Exists(raidsvFilePath))
+            {
+                File.Move(raidsvFilePath, Path.Combine(RaidFilesSV, "raidsv.txt"));
             }
+            else
+            {
+                File.Create(Path.Combine(RaidFilesSV, "raidsv.txt")).Dispose();
+            } 
 
-            if (!File.Exists(pkparamFilePath)) {
-                File.Create(pkparamFilePath).Dispose();
+            if (File.Exists(pkparamFilePath))
+            {
+                File.Move(pkparamFilePath, Path.Combine(RaidFilesSV, "pkparam.txt"));
             }
+            else
+            {
+                File.Create(Path.Combine(RaidFilesSV, "pkparam.txt")).Dispose();
+            } 
 
-            if (!File.Exists(bodyparamFilePath)) {
-                File.Create(bodyparamFilePath).Dispose();
+            if (File.Exists(bodyparamFilePath))
+            {
+                File.Move(bodyparamFilePath, Path.Combine(RaidFilesSV, "bodyparam.txt"));
+            }
+            else
+            {
+                File.Create(Path.Combine(RaidFilesSV, "bodyparam.txt")).Dispose();
             }
         }
     }
