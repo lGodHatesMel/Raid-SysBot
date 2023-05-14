@@ -666,12 +666,12 @@ namespace SysBot.Pokemon.Discord
             int type = int.Parse(content);
 
             var description = string.Empty;
-            var filepath = "RaidFiles\\bodyparam.txt";
+            var filepath = "RaidFilesSV\\bodyparam.txt";
             if (File.Exists(filepath))
                 description = File.ReadAllText(filepath);
 
             var data = string.Empty;
-            var pkpath = "RaidFiles\\pkparam.txt";
+            var pkpath = "RaidFilesSV\\pkparam.txt";
             if (File.Exists(pkpath))
                 data = File.ReadAllText(pkpath);
 
@@ -817,6 +817,29 @@ namespace SysBot.Pokemon.Discord
                 x.IsInline = false;
             });
             await ReplyAsync("These are the raids currently in the list:", embed: embed.Build()).ConfigureAwait(false);
+        }
+
+        [Command("toggleRaidPK")]
+        [Alias("trpk")]
+        [Summary("Toggles raid parameter.")]
+        [RequireSudo]
+        public async Task ToggleRaidParamPK([Summary("Seed")] string seed, [Summary("Showdown Set")][Remainder] string content)
+        {
+
+            var deactivate = uint.Parse(seed, NumberStyles.AllowHexSpecifier);
+            var list = SysCord<T>.Runner.Hub.Config.RaidSV.RaidEmbedParameters;
+            foreach (var s in list)
+            {
+                var def = uint.Parse(s.Seed, NumberStyles.AllowHexSpecifier);
+                if (def == deactivate)
+                {
+                    s.PartyPK = new[] { content };
+                    var m = string.Join("\n", s.PartyPK);
+                    var msg = $"RaidPK for {s.Species} | {s.Seed:X8} has been updated to \n{m}!";
+                    await ReplyAsync(msg).ConfigureAwait(false);
+                    return;
+                }
+            }
         }
     }
 }
