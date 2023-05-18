@@ -785,7 +785,7 @@ namespace SysBot.Pokemon
             if (names is null && !upnext)
                 code = $"**{(Settings.RaidEmbedParameters[RotationCount].IsCoded && EmptyRaid < 5 ? await GetRaidCode(token).ConfigureAwait(false) : "Free For All")}**";
 
-            if (EmptyRaid is 5)
+            if (EmptyRaid is 2)
                 EmptyRaid = 0;
 
             if (disband) // Wait for trainer to load before disband

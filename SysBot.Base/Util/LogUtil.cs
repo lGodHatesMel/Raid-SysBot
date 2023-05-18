@@ -24,7 +24,7 @@ namespace SysBot.Base
                 ArchiveFileName = Path.Combine("logs", "SysBotLog.{#}.txt"),
                 ArchiveDateFormat = "yyyy-MM-dd",
                 ArchiveAboveSize = 104857600, // 100MB (never)
-                MaxArchiveFiles = 14, // 2 weeks
+                MaxArchiveFiles = 0, // 2 weeks
                 Encoding = Encoding.Unicode,
                 WriteBom = true,
             };
