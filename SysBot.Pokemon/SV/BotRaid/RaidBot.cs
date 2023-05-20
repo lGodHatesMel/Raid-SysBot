@@ -532,7 +532,7 @@ namespace SysBot.Pokemon
             if (!Settings.RaidEmbedParameters[RotationCount].IsCoded || Settings.RaidEmbedParameters[RotationCount].IsCoded && EmptyRaid is 5)
             {
                 if (Settings.RaidEmbedParameters[RotationCount].IsCoded && EmptyRaid is 5)
-                    Log("We had 5 empty raids.. Opening this raid to all!");
+                    Log("We had 2 empty raids.. Opening this raid to all!");
                 await Click(DDOWN, 1_000, token).ConfigureAwait(false);
             }
 
@@ -783,7 +783,7 @@ namespace SysBot.Pokemon
 
             string code = string.Empty;
             if (names is null && !upnext)
-                code = $"**{(Settings.RaidEmbedParameters[RotationCount].IsCoded && EmptyRaid < 5 ? await GetRaidCode(token).ConfigureAwait(false) : "Free For All")}**";
+                code = $"**{(Settings.RaidEmbedParameters[RotationCount].IsCoded && EmptyRaid < 5 ? await GetRaidCode(token).ConfigureAwait(false) : "FREE FOR ALL (TESTING)")}**";
 
             if (EmptyRaid is 2)
                 EmptyRaid = 0;
@@ -806,7 +806,7 @@ namespace SysBot.Pokemon
             var embed = new EmbedBuilder()
             {
                 Title = disband ? $"**Raid canceled: [{TeraRaidCode}]**" : title,
-                Color = disband ? Color.Red : hatTrick ? Color.Blue : Color.Purple,
+                Color = disband ? Color.Red : hatTrick ? Color.Blue : Color.DarkPurple,
                 Description = disband ? message : description,
                 ImageUrl = bytes.Length > 0 ? "attachment://zap.jpg" : default,
             }.WithFooter(new EmbedFooterBuilder()

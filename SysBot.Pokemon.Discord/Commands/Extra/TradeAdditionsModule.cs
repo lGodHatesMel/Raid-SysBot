@@ -657,8 +657,8 @@ namespace SysBot.Pokemon.Discord
             await ReplyAsync(msg).ConfigureAwait(false);
         }
 
-        [Command("addRaidParams")]
-        [Alias("arp", "addraid")]
+        [Command("addRaid")]
+        [Alias("arp")]
         [Summary("Adds new raid parameter.")]
         [RequireSudo]
         public async Task AddNewRaidParam([Summary("Seed")] string seed, [Summary("Species Type")] string species, [Summary("Content Type")] string content)
@@ -699,9 +699,9 @@ namespace SysBot.Pokemon.Discord
             await ReplyAsync(msg).ConfigureAwait(false);
         }
 
-        [Command("removeRaidParams")]
-        [Alias("rrp", "removeraid")]
-        [Summary("Adds new raid parameter.")]
+        [Command("removeRaid")]
+        [Alias("rr")]
+        [Summary("Remove a raid.")]
         [RequireSudo]
         public async Task RemoveRaidParam([Summary("Seed")] string seed)
         {
@@ -721,8 +721,8 @@ namespace SysBot.Pokemon.Discord
             }
         }
 
-        [Command("toggleRaidParams")]
-        [Alias("trp", "toggleraid")]
+        [Command("toggleRaid")]
+        [Alias("tr")]
         [Summary("Toggles raid parameter.")]
         [RequireSudo]
         public async Task DeactivateRaidParam([Summary("Seed")] string seed)
@@ -747,8 +747,8 @@ namespace SysBot.Pokemon.Discord
             }
         }
 
-        [Command("togglecodeRaidParams")]
-        [Alias("tcrp", "toggleRaidCode")]
+        [Command("toggleRaidCode")]
+        [Alias("trc")]
         [Summary("Toggles code raid parameter.")]
         [RequireSudo]
         public async Task ToggleCodeRaidParam([Summary("Seed")] string seed)
@@ -773,9 +773,35 @@ namespace SysBot.Pokemon.Discord
             }
         }
 
-        [Command("changeRaidParamTitle")]
+        [Command("toggleAltArt")]
+        [Alias("taa")]
+        [Summary("Toggles alternate art parameter.")]
+        [RequireSudo]
+        public async Task ToggleAlternateArtParam([Summary("Seed")] string seed)
+        {
+
+            var deactivate = uint.Parse(seed, NumberStyles.AllowHexSpecifier);
+            var list = SysCord<T>.Runner.Hub.Config.RaidSV.RaidEmbedParameters;
+            foreach (var s in list)
+            {
+                var def = uint.Parse(s.Seed, NumberStyles.AllowHexSpecifier);
+                if (def == deactivate)
+                {
+                    if (s.SpriteAlternateArt == false)
+                        s.SpriteAlternateArt = true;
+                    else
+                        s.SpriteAlternateArt = false;
+                    var m = s.SpriteAlternateArt == false ? "Normal Art" : "Alternate Art";
+                    var msg = $"Raid for {s.Species} | {s.Seed:X8} is now using {m}!";
+                    await ReplyAsync(msg).ConfigureAwait(false);
+                    return;
+                }
+            }
+        }
+
+        [Command("changeRaidTitle")]
         [Alias("crpt","crt")]
-        [Summary("Adds new raid parameter.")]
+        [Summary("Adds new raid title.")]
         [RequireSudo]
         public async Task ChangeRaidParamTite([Summary("Seed")] string seed, [Summary("Content Type")] string title)
         {
@@ -796,7 +822,7 @@ namespace SysBot.Pokemon.Discord
         }
 
         [Command("viewraidList")]
-        [Alias("vrl", "raidlist")]
+        [Alias("vrl", "raidlist", "rl")]
         [Summary("Prints the raid list in the current collection.")]
         public async Task GetRaidListAsync()
         {
@@ -819,11 +845,11 @@ namespace SysBot.Pokemon.Discord
             await ReplyAsync("These are the raids currently in the list:", embed: embed.Build()).ConfigureAwait(false);
         }
 
-        [Command("toggleRaidPK")]
-        [Alias("trpk")]
-        [Summary("Toggles raid parameter.")]
+        [Command("addRaidPK")]
+        [Alias("trpk", "arpk")]
+        [Summary("Add a pk to a raid parameter.")]
         [RequireSudo]
-        public async Task ToggleRaidParamPK([Summary("Seed")] string seed, [Summary("Showdown Set")][Remainder] string content)
+        public async Task AddRaidParamPK([Summary("Seed")] string seed, [Summary("Showdown Set")][Remainder] string content)
         {
 
             var deactivate = uint.Parse(seed, NumberStyles.AllowHexSpecifier);
