@@ -14,7 +14,7 @@ namespace SysBot.Pokemon
         public override string ToString() => "Raid Bot Settings";
 
         [Category(Hosting), Description("Number of seconds to wait before trying to start a raid. Ranges from 0 to 180 seconds.")]
-        public int TimeToWait { get; set; } = 90;
+        public int TimeToWait { get; set; } = 110;
 
         [Category(Hosting), Description("Minimum Link Code to host the raid with. Set this to -1 to host with no code.")]
         public int MinRaidCode { get; set; } = 8180;

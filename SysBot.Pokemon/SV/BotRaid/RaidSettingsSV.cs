@@ -42,10 +42,10 @@ namespace SysBot.Pokemon
         public int EmptyRaidLimit { get; set; } = 3;
 
         [Category(Hosting), Description("Minimum amount of seconds to wait before starting a raid.")]
-        public int TimeToWait { get; set; } = 90;
+        public int TimeToWait { get; set; } = 110;
 
         [Category(FeatureToggle), Description("If true, the bot will attempt take screenshots for the Raid Embeds. If you experience crashes often about \"Size/Parameter\" try setting this to false.")]
-        public bool TakeScreenshot { get; set; } = true;
+        public bool TakeScreenshot { get; set; } = false;
 
         [Category(Hosting), Description("Users NIDs here are banned raiders.")]
         public RemoteControlAccessList RaiderBanList { get; set; } = new() { AllowIfEmpty = false };
