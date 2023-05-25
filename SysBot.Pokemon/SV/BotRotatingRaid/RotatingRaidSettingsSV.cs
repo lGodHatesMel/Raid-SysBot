@@ -4,10 +4,11 @@ using SysBot.Base;
 using System.Threading;
 using System.Collections.Generic;
 using System;
+using static SysBot.Pokemon.RaidSettingsSV;
 
 namespace SysBot.Pokemon
 {
-    public class RaidSettingsSV : IBotStateSettings, ICountSettings
+    public class RotatingRaidSettingsSV : IBotStateSettings, ICountSettings
     {
         private const string Hosting = nameof(Hosting);
         private const string Counts = nameof(Counts);
@@ -21,7 +22,7 @@ namespace SysBot.Pokemon
         public int RaidsBetweenUpdate { get; set; } = 3;
 
         [Category(Hosting), Description("If true, the bot will attempt to auto-generate Raid Parameters from the \"raidsv.txt\" file on botstart.")]
-        public bool GenerateParametersFromFile { get; set; } = false;
+        public bool GenerateParametersFromFile { get; set; } = true;
 
         [Category(Hosting), Description("If true, the bot will attempt to auto-generate Raid Embeds based on the\"preset.txt\" file.")]
         public bool UsePresetFile { get; set; } = true;
@@ -33,13 +34,13 @@ namespace SysBot.Pokemon
         public string RaidStreamLink { get; set; } = "";
 
         [Category(Hosting), Description("Raid embed parameters.")]
-        public List<RaidParameters> RaidEmbedParameters { get; set; } = new();
+        public List<RotatingRaidParameters> RaidEmbedParameters { get; set; } = new();
 
         [Category(Hosting), Description("Catch limit per player before they get added to the ban list automatically. If set to 0 this setting will be ignored.")]
         public int CatchLimit { get; set; } = 0;
 
         [Category(Hosting), Description("Empty raid limit per parameter before the bot hosts and uncoded raid. Default is 3 raids.")]
-        public int EmptyRaidLimit { get; set; } = 3;
+        public int EmptyRaidLimit { get; set; } = 2;
 
         [Category(Hosting), Description("Minimum amount of seconds to wait before starting a raid.")]
         public int TimeToWait { get; set; } = 90;
@@ -93,14 +94,7 @@ namespace SysBot.Pokemon
                 yield return $"Started Raids: {CompletedRaids}";
         }
 
-        public enum DTFormat
-        { 
-            MMDDYY,
-            DDMMYY,
-            YYMMDD,
-        }
-
-        public class RaidParameters
+        public class RotatingRaidParameters
         {
             public override string ToString() => $"{Title}";
             public string Title { get; set; } = string.Empty;
@@ -113,15 +107,8 @@ namespace SysBot.Pokemon
             public bool SpriteAlternateArt { get; set; } = false;
             public string Seed { get; set; } = "0";
             public string[] PartyPK { get; set; } = Array.Empty<string>();
+            public bool ActiveInRotation { get; set; } = true;
             public bool IsSet { get; set; } = false;
-        }
-
-        public enum TeraCrystalType: int
-        {
-            Base = 0,
-            Black = 1,
-            Distribution = 2,
-            Might = 3,
         }
     }    
 }

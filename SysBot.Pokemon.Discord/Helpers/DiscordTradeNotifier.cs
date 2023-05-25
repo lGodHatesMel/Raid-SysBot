@@ -93,16 +93,17 @@ namespace SysBot.Pokemon.Discord
                 var mode = info.Type;
                 switch (mode)
                 {
-                    case PokeTradeType.Specific: msg = "request!"; break;
-                    case PokeTradeType.Clone: msg = "clone!"; break;
-                    case PokeTradeType.Display: msg = "trophy!"; break;
-                    case PokeTradeType.EtumrepDump or PokeTradeType.Dump or PokeTradeType.Seed: msg = "dump!"; break;
-                    case PokeTradeType.SupportTrade or PokeTradeType.Giveaway: msg = $"gift!"; break;
-                    case PokeTradeType.FixOT: msg = $"fixed OT!"; break;
+                    case PokeTradeType.Specific: msg += "request!"; break;
+                    case PokeTradeType.Clone: msg += "clone!"; break;
+                    case PokeTradeType.Display: msg += "trophy!"; break;
+                    case PokeTradeType.EtumrepDump or PokeTradeType.Dump or PokeTradeType.Seed: msg += "dump!"; break;
+                    case PokeTradeType.SupportTrade or PokeTradeType.Giveaway: msg += $"gift!"; break;
+                    case PokeTradeType.FixOT: msg += $"fixed OT!"; break;
                 }
                 string TIDFormatted = fin.Generation >= 7 ? $"{fin.TrainerTID7:000000}" : $"{fin.TID16:00000}";
                 var footer = new EmbedFooterBuilder { Text = $"Trainer Info: {fin.OT_Name}/{TIDFormatted}" };
-                var embed = new EmbedBuilder { Color = fin.IsShiny && fin.ShinyXor == 0 ? Color.Gold : fin.IsShiny ? Color.LighterGrey : Color.Teal, Footer = footer, ThumbnailUrl = pokeImg };
+                var author = new EmbedAuthorBuilder { Name = $"{Context.User.Username}'s Pokémon" };
+                var embed = new EmbedBuilder { Color = fin.IsShiny && fin.ShinyXor == 0 ? Color.Gold : fin.IsShiny ? Color.LighterGrey : Color.Teal, Author = author, Footer = footer, ThumbnailUrl = pokeImg };
                 embed.AddField(x =>
                 {
                     x.Name = $"{shiny} {specitem}{gender}";

@@ -1,11 +1,8 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using Newtonsoft.Json;
-using PermuteMMO.Lib;
 using PKHeX.Core;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -657,7 +654,7 @@ namespace SysBot.Pokemon.Discord
             await ReplyAsync(msg).ConfigureAwait(false);
         }
 
-        [Command("addRaid")]
+        [Command("addRaidParams")]
         [Alias("arp")]
         [Summary("Adds new raid parameter.")]
         [RequireSudo]
@@ -666,12 +663,20 @@ namespace SysBot.Pokemon.Discord
             int type = int.Parse(content);
 
             var description = string.Empty;
+            var prevpath = "bodyparam.txt";            
             var filepath = "RaidFilesSV\\bodyparam.txt";
+            if (File.Exists(prevpath))            
+                Directory.Move(filepath, prevpath + Path.GetFileName(filepath));
+            
             if (File.Exists(filepath))
                 description = File.ReadAllText(filepath);
 
             var data = string.Empty;
+            var prevpk = "pkparam.txt";
             var pkpath = "RaidFilesSV\\pkparam.txt";
+            if (File.Exists(prevpk))            
+                Directory.Move(pkpath, prevpk + Path.GetFileName(pkpath));
+            
             if (File.Exists(pkpath))
                 data = File.ReadAllText(pkpath);
 
@@ -682,7 +687,7 @@ namespace SysBot.Pokemon.Discord
                 return;
             }
 
-            RaidSettingsSV.RaidParameters newparam = new()
+            RotatingRaidSettingsSV.RotatingRaidParameters newparam = new()
             {
                 CrystalType = (RaidSettingsSV.TeraCrystalType)type,                
                 Description = new[] { description },
@@ -694,20 +699,20 @@ namespace SysBot.Pokemon.Discord
                 Title = $"{parse} ☆ - {(RaidSettingsSV.TeraCrystalType)type}",
             };
 
-            SysCord<T>.Runner.Hub.Config.RaidSV.RaidEmbedParameters.Add(newparam);
+            SysCord<T>.Runner.Hub.Config.RotatingRaidSV.RaidEmbedParameters.Add(newparam);
             var msg = $"A new raid for {newparam.Species} has been added!";
             await ReplyAsync(msg).ConfigureAwait(false);
         }
 
-        [Command("removeRaid")]
-        [Alias("rr")]
-        [Summary("Remove a raid.")]
+        [Command("removeRaidParams")]
+        [Alias("rrp")]
+        [Summary("Adds new raid parameter.")]
         [RequireSudo]
         public async Task RemoveRaidParam([Summary("Seed")] string seed)
         {
 
             var remove = uint.Parse(seed, NumberStyles.AllowHexSpecifier);
-            var list = SysCord<T>.Runner.Hub.Config.RaidSV.RaidEmbedParameters;
+            var list = SysCord<T>.Runner.Hub.Config.RotatingRaidSV.RaidEmbedParameters;
             foreach (var s in list)
             {
                 var def = uint.Parse(s.Seed, NumberStyles.AllowHexSpecifier);
@@ -721,15 +726,15 @@ namespace SysBot.Pokemon.Discord
             }
         }
 
-        [Command("toggleRaid")]
-        [Alias("tr")]
+        [Command("toggleRaidParams")]
+        [Alias("trp")]
         [Summary("Toggles raid parameter.")]
         [RequireSudo]
         public async Task DeactivateRaidParam([Summary("Seed")] string seed)
         {
 
             var deactivate = uint.Parse(seed, NumberStyles.AllowHexSpecifier);
-            var list = SysCord<T>.Runner.Hub.Config.RaidSV.RaidEmbedParameters;
+            var list = SysCord<T>.Runner.Hub.Config.RotatingRaidSV.RaidEmbedParameters;
             foreach (var s in list)
             {
                 var def = uint.Parse(s.Seed, NumberStyles.AllowHexSpecifier);
@@ -747,15 +752,15 @@ namespace SysBot.Pokemon.Discord
             }
         }
 
-        [Command("toggleRaidCode")]
-        [Alias("trc")]
+        [Command("togglecodeRaidParams")]
+        [Alias("tcrp")]
         [Summary("Toggles code raid parameter.")]
         [RequireSudo]
         public async Task ToggleCodeRaidParam([Summary("Seed")] string seed)
         {
 
             var deactivate = uint.Parse(seed, NumberStyles.AllowHexSpecifier);
-            var list = SysCord<T>.Runner.Hub.Config.RaidSV.RaidEmbedParameters;
+            var list = SysCord<T>.Runner.Hub.Config.RotatingRaidSV.RaidEmbedParameters;
             foreach (var s in list)
             {
                 var def = uint.Parse(s.Seed, NumberStyles.AllowHexSpecifier);
@@ -773,41 +778,15 @@ namespace SysBot.Pokemon.Discord
             }
         }
 
-        [Command("toggleAltArt")]
-        [Alias("taa")]
-        [Summary("Toggles alternate art parameter.")]
-        [RequireSudo]
-        public async Task ToggleAlternateArtParam([Summary("Seed")] string seed)
-        {
-
-            var deactivate = uint.Parse(seed, NumberStyles.AllowHexSpecifier);
-            var list = SysCord<T>.Runner.Hub.Config.RaidSV.RaidEmbedParameters;
-            foreach (var s in list)
-            {
-                var def = uint.Parse(s.Seed, NumberStyles.AllowHexSpecifier);
-                if (def == deactivate)
-                {
-                    if (s.SpriteAlternateArt == false)
-                        s.SpriteAlternateArt = true;
-                    else
-                        s.SpriteAlternateArt = false;
-                    var m = s.SpriteAlternateArt == false ? "Normal Art" : "Alternate Art";
-                    var msg = $"Raid for {s.Species} | {s.Seed:X8} is now using {m}!";
-                    await ReplyAsync(msg).ConfigureAwait(false);
-                    return;
-                }
-            }
-        }
-
         [Command("changeRaidTitle")]
-        [Alias("crpt","crt")]
-        [Summary("Adds new raid title.")]
+        [Alias("crpt")]
+        [Summary("Adds new raid parameter.")]
         [RequireSudo]
         public async Task ChangeRaidParamTite([Summary("Seed")] string seed, [Summary("Content Type")] string title)
         {
 
             var deactivate = uint.Parse(seed, NumberStyles.AllowHexSpecifier);
-            var list = SysCord<T>.Runner.Hub.Config.RaidSV.RaidEmbedParameters;
+            var list = SysCord<T>.Runner.Hub.Config.RotatingRaidSV.RaidEmbedParameters;
             foreach (var s in list)
             {
                 var def = uint.Parse(s.Seed, NumberStyles.AllowHexSpecifier);
@@ -822,11 +801,11 @@ namespace SysBot.Pokemon.Discord
         }
 
         [Command("viewraidList")]
-        [Alias("vrl", "raidlist", "rl")]
-        [Summary("Prints the raid list in the current collection.")]
+        [Alias("vrl", "rotatinglist")]
+        [Summary("Prints the first 20 raids in the current collection.")]
         public async Task GetRaidListAsync()
         {
-            var list = SysCord<T>.Runner.Hub.Config.RaidSV.RaidEmbedParameters;
+            var list = SysCord<T>.Runner.Hub.Config.RotatingRaidSV.RaidEmbedParameters.Take(19);
             string msg = string.Empty;
             foreach (var s in list)
             {
@@ -842,18 +821,18 @@ namespace SysBot.Pokemon.Discord
                 x.Value = msg;
                 x.IsInline = false;
             });
-            await ReplyAsync("These are the raids currently in the list:", embed: embed.Build()).ConfigureAwait(false);
+            await ReplyAsync("These are the first 20 raids currently in the list:", embed: embed.Build()).ConfigureAwait(false);
         }
 
-        [Command("addRaidPK")]
-        [Alias("trpk", "arpk")]
-        [Summary("Add a pk to a raid parameter.")]
+        [Command("toggleRaidPK")]
+        [Alias("trpk")]
+        [Summary("Toggles raid parameter.")]
         [RequireSudo]
-        public async Task AddRaidParamPK([Summary("Seed")] string seed, [Summary("Showdown Set")][Remainder] string content)
+        public async Task ToggleRaidParamPK([Summary("Seed")] string seed, [Summary("Showdown Set")][Remainder] string content)
         {
 
             var deactivate = uint.Parse(seed, NumberStyles.AllowHexSpecifier);
-            var list = SysCord<T>.Runner.Hub.Config.RaidSV.RaidEmbedParameters;
+            var list = SysCord<T>.Runner.Hub.Config.RotatingRaidSV.RaidEmbedParameters;
             foreach (var s in list)
             {
                 var def = uint.Parse(s.Seed, NumberStyles.AllowHexSpecifier);
@@ -866,6 +845,33 @@ namespace SysBot.Pokemon.Discord
                     return;
                 }
             }
+        }
+
+        [Command("raidhelp")]
+        [Alias("rh")]
+        [Summary("Prints the raid help command list.")]
+        public async Task GetRaidHelpListAsync()
+        {
+            var embed = new EmbedBuilder();
+            List<string> cmds = new()
+            {
+                "$crb - Clear all in raider ban list.\n",
+                "$vrl - View all raids in the list.\n",
+                "$arp - Add parameter to the collection.\nEx: [Command] [Seed] [Species] [Difficulty]\n",
+                "$rrp - Remove parameter from the collection.\nEx: [Command] [Seed]\n",
+                "$trp - Toggle the parameter as Active/Inactive in the collection.\nEx: [Command] [Seed]\n",
+                "$tcrp - Toggle the parameter as Coded/Uncoded in the collection.\nEx: [Command] [Seed]\n",
+                "$trpk - Set a PartyPK for the parameter via a showdown set.\nEx: [Command] [Seed] [ShowdownSet]\n",
+                "$crpt - Set the title for the parameter.\nEx: [Command] [Seed]"
+            };
+            string msg = string.Join("", cmds.ToList());
+            embed.AddField(x =>
+            {
+                x.Name = "Raid Help Commands";
+                x.Value = msg;
+                x.IsInline = false;
+            });
+            await ReplyAsync("Here's your raid help!", embed: embed.Build()).ConfigureAwait(false);
         }
     }
 }

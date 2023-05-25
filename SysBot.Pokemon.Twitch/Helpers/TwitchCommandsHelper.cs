@@ -1,6 +1,8 @@
 using System;
+using System.Linq;
 using PKHeX.Core;
 using SysBot.Base;
+using SysBot.Pokemon.Discord;
 
 namespace SysBot.Pokemon.Twitch
 {
@@ -48,7 +50,7 @@ namespace SysBot.Pokemon.Twitch
 
                 if (!pkm.CanBeTraded())
                 {
-                    msg = $"Skipping trade, @{username}: Provided Pokémon content is blocked from trading!";
+                    msg = $"Skipping trade, @{username}: Provided Pokï¿½mon content is blocked from trading!";
                     return false;
                 }
 
@@ -65,7 +67,7 @@ namespace SysBot.Pokemon.Twitch
                     }
                 }
 
-                var reason = result == "Timeout" ? "Set took too long to generate." : "Unable to legalize the Pokémon.";
+                var reason = result == "Timeout" ? "Set took too long to generate." : "Unable to legalize the Pokï¿½mon.";
                 msg = $"Skipping trade, @{username}: {reason}";
             }
             catch (Exception ex)
@@ -105,6 +107,27 @@ namespace SysBot.Pokemon.Twitch
             return detail == null
                 ? "Sorry, you are not currently in the queue."
                 : $"Your trade code is {detail.Trade.Code:0000 0000}";
+        }
+
+        public static string GetRaidList()
+        {
+            var list = SysCord<T>.Runner.Hub.Config.RotatingRaidSV.RaidEmbedParameters.Take(19);
+            string msg = string.Empty;
+            int raidcount = 0;
+            foreach (var s in list)
+            {
+                if (s.ActiveInRotation)
+                {
+                    raidcount++;
+                    msg += $"{raidcount}.) " + s.Title + " - " + s.Seed + " - Status: Active | ";
+                }
+                else
+                {
+                    raidcount++;
+                    msg += $"{raidcount}.) " + s.Title + " - " + s.Seed + " - Status: Inactive | ";
+                }
+            }
+            return "These are the first 20 raids currently in the list:\n" + msg;
         }
     }
 }

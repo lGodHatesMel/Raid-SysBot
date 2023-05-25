@@ -1,4 +1,5 @@
 ﻿using PKHeX.Core;
+using System.Collections.Generic;
 using System.ComponentModel;
 
 namespace SysBot.Pokemon
@@ -39,7 +40,7 @@ namespace SysBot.Pokemon
 
         [Category(Generate), Description("If PrioritizeGame is set to \"True\", uses PrioritizeGameVersion to start looking for encounters. If \"False\", uses newest game as the version. It is recommended to leave this as \"True\".")]
         public bool PrioritizeGame { get; set; } = true;
-        
+
         [Category(Generate), Description("Specifies the first game to use to generate encounters, or current game if this field is set to \"Any\". Set PrioritizeGame to \"true\" to enable. It is recommended to leave this as \"Any\".")]
         public GameVersion PrioritizeGameVersion { get; set; } = GameVersion.Any;
 
@@ -51,6 +52,9 @@ namespace SysBot.Pokemon
 
         [Category(Generate), Description("Force the specified ball if legal.")]
         public bool ForceSpecifiedBall { get; set; }
+
+        [Category(Generate), Description("The order in which Pokémon encounter types are attempted.")]
+        public List<EncounterTypeGroup> PrioritizeEncounters { get; set; } = new List<EncounterTypeGroup>() { EncounterTypeGroup.Egg, EncounterTypeGroup.Slot, EncounterTypeGroup.Static, EncounterTypeGroup.Mystery, EncounterTypeGroup.Trade };
 
         [Category(Generate), Description("Allow XOROSHIRO when generating Gen 8 Raid Pokémon.")]
         public bool UseXOROSHIRO { get; set; } = true;

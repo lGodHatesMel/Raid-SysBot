@@ -60,7 +60,7 @@ namespace SysBot.Pokemon.Discord
                 IEmote[] reactions = { new Emoji("⬅️"), new Emoji("➡️"), new Emoji("⬆️"), new Emoji("⬇️") };
                 _ = Task.Run(async () => await msg.AddReactionsAsync(reactions).ConfigureAwait(false));
                 if (!DictWipeRunning)
-                    _ = Task.Run(async () => await DictWipeMonitor().ConfigureAwait(false));
+                    _ = Task.Run(DictWipeMonitor);
             }
         }
 
@@ -88,18 +88,10 @@ namespace SysBot.Pokemon.Discord
                 if (!reactions.Contains(reaction.Emote))
                     return;
 
-                // var tc = SysCord<T>.Runner.Hub.Config.Discord.TradeCordChannels.List;
-                // if (!ch.HasValue || ch.Value is IDMChannel || (tc.Count != 0 && tc.FirstOrDefault(x => x.ID == ch.Id || x.Name == ch.Value.Name) == default))
-                //     return;
-
                 IUserMessage msg;
                 if (!cachedMsg.HasValue)
                     msg = await cachedMsg.GetOrDownloadAsync().ConfigureAwait(false);
                 else msg = cachedMsg.Value;
-
-                // bool process = msg.Embeds.Count > 0 && (TradeCordHelper<T>.TCInitialized || msg.Embeds.First().Fields[0].Name.Contains("Giveaway Pool"));
-                // if (!process || !reaction.User.IsSpecified)
-                //     return;
 
                 var user = reaction.User.Value;
                 if (user.IsBot || !ReactMessageDict.ContainsKey(user.Id))
@@ -186,6 +178,25 @@ namespace SysBot.Pokemon.Discord
             }
             await msg.AddReactionAsync(new Emoji("❌")).ConfigureAwait(false);
             return true;
+        }
+
+        public async Task EmbedUtil(SocketCommandContext ctx, string name, string value, EmbedBuilder? embed = null)
+        {
+            embed ??= new EmbedBuilder { Color = GetBorderColor(false) };
+
+            var splitName = name.Split(new string[] { "&^&" }, StringSplitOptions.None);
+            var splitValue = value.Split(new string[] { "&^&" }, StringSplitOptions.None);
+
+            for (int i = 0; i < splitName.Length; i++)
+            {
+                embed.AddField(x =>
+                {
+                    x.Name = splitName[i];
+                    x.Value = splitValue[i];
+                    x.IsInline = false;
+                });
+            }
+            await ctx.Message.Channel.SendMessageAsync(embed: embed.Build()).ConfigureAwait(false);
         }
 
         public static Task ButtonExecuted(SocketMessageComponent component)
