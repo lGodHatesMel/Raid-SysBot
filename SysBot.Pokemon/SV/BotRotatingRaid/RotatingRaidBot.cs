@@ -891,8 +891,6 @@ namespace SysBot.Pokemon
             if (Settings.TakeScreenshot && !upnext)
                 bytes = await SwitchConnection.PixelPeek(token).ConfigureAwait(false) ?? Array.Empty<byte>();
 
-            string disclaimer = Settings.RaidEmbedParameters.Count > 1 ? "Disclaimer: Raids are on rotation via seed injection.\n" : "";
-
             if (upnext)
             {
                 if (Settings.HideRaidCode)
@@ -910,7 +908,7 @@ namespace SysBot.Pokemon
             }.WithFooter(new EmbedFooterBuilder()
             {
                 Text = $"Host: {HostSAV.OT} | Uptime: {StartTime - DateTime.Now:d\\.hh\\:mm\\:ss}\n" +
-                       $"Raids: {RaidCount} | Wins: {WinCount} | Losses: {LossCount}\n" + disclaimer
+                       $"Raids: {RaidCount} | Wins: {WinCount} | Losses: {LossCount}"
             });
 
             if (!disband && names is null && !upnext)
