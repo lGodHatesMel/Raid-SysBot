@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using static SysBot.Base.SwitchButton;
 using static SysBot.Pokemon.RaidSettingsSV;
 using RaidCrawler.Core.Structures;
+using System.Text.RegularExpressions;
 
 namespace SysBot.Pokemon
 {
@@ -776,7 +777,7 @@ namespace SysBot.Pokemon
 
             string code = string.Empty;
             if (names is null && !upnext)
-                code = $"**{(Settings.RaidEmbedParameters[0].IsCoded && EmptyRaid < 5 ? await GetRaidCode(token).ConfigureAwait(false) : "Free For All")}**";
+                code = $"**{(Settings.RaidEmbedParameters[0].IsCoded && EmptyRaid < Settings.EmptyRaidLimit ? await GetRaidCode(token).ConfigureAwait(false) : "Free For All")}**";
 
             if (EmptyRaid == Settings.EmptyRaidLimit)
                 EmptyRaid = 0;
@@ -1062,6 +1063,7 @@ namespace SysBot.Pokemon
                             .Replace("{difficulty}", $"{stars}")
                             .Replace("{stars}", starcount)
                             .Trim();
+                            raidDescription[j] = Regex.Replace(raidDescription[j], @"\s+", " ");
                         }
                         Settings.RaidEmbedParameters[0].Description = raidDescription;
                     }
