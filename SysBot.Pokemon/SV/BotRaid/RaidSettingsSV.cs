@@ -14,8 +14,8 @@ namespace SysBot.Pokemon
         private const string FeatureToggle = nameof(FeatureToggle);
         public override string ToString() => "RaidBotSV Settings";
 
-        [Category(FeatureToggle), Description("URL to Pokémon Automation's Tera Ban List json (or one matching the required structure).")]
-        public string BanListURL { get; set; } = "https://raw.githubusercontent.com/PokemonAutomation/ServerConfigs-PA-SHA/main/PokemonScarletViolet/TeraAutoHost-BanList.json";
+        [Category(FeatureToggle), Description("URL link for Tera Ban List json (or one matching the required structure).")]
+        public string BanListURL { get; set; } = "https://raw.githubusercontent.com/lGodHatesMel/SysBot.PokemonScarletViolet/main/Resources/RaidSysBotUserBanlist.JSON";
 
         [Category(Hosting), Description("Amount of raids before updating the ban list. If you want the global ban list off, set this to -1.")]
         public int RaidsBetweenUpdate { get; set; } = 3;
@@ -30,7 +30,7 @@ namespace SysBot.Pokemon
         public bool HideRaidCode { get; set; } = true;
 
         [Category(FeatureToggle), Description("If using The `HideRaidCode` Option then add your stream Link URL Here.")]
-        public string RaidStreamLink { get; set; } = "";
+        public string RaidStreamLink { get; set; } = "https://www.twitch.tv/lgodhatesmel";
 
         [Category(Hosting), Description("Raid embed parameters.")]
         public List<RaidParameters> RaidEmbedParameters { get; set; } = new();
