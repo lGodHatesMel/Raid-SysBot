@@ -329,7 +329,7 @@ namespace SysBot.Pokemon
                         var tr = trainers.FirstOrDefault(x => x.Item2.OT == trainer.OT);
                         if (tr != default)
                             Log($"Player {i + 2} matches lobby check for {trainer.OT}.");
-                        else Log($"New Player {i + 2}: {trainer.OT} | TID: {trainer.DisplayTID} | NID: {nid}.");
+                        else Log($"New Player {i + 2}: {trainer.OT} | TID: {trainer.DisplayTID} | SID: {trainer.DisplaySID} | NID: {nid}.");
                     }
                     var nidDupe = lobbyTrainersFinal.Select(x => x.Item1).ToList();
                     var dupe = lobbyTrainersFinal.Count > 1 && nidDupe.Distinct().Count() == 1;
@@ -549,7 +549,7 @@ namespace SysBot.Pokemon
 
         private async Task<bool> CheckIfTrainerBanned(TradeMyStatus trainer, ulong nid, int player, bool updateBanList, CancellationToken token)
         {
-            Log($"Player {player}: {trainer.OT} | TID: {trainer.DisplayTID} | NID: {nid}");
+            Log($"Player {player}: {trainer.OT} | TID: {trainer.DisplayTID} | SID: {trainer.DisplaySID} | NID: {nid}");
             if (!RaidTracker.ContainsKey(nid))
                 RaidTracker.Add(nid, 0);
 
@@ -783,12 +783,17 @@ namespace SysBot.Pokemon
                 bytes = await SwitchConnection.PixelPeek(token).ConfigureAwait(false) ?? Array.Empty<byte>();
 
             if (upnext)
-                title = "Preparing next raid...";
+            {
+                if (Settings.HideRaidCode)
+                    title = $"Preparing next raid...\n\nGet Raid code for this raid on my Twitch Stream\n\n[Stream Link Below]\n{Settings.RaidStreamLink}";
+                else
+                    title = "Preparing next raid...";
+            }
 
             var embed = new EmbedBuilder()
             {
                 Title = disband ? $"**Raid canceled: [{TeraRaidCode}]**" : title,
-                Color = disband ? Color.Red : hatTrick ? Color.Purple : Color.Green,
+                Color = disband ? Color.Red : hatTrick ? Color.Blue : Color.Purple,
                 Description = disband ? message : upnext ? Settings.RaidEmbedFilters.Title : description,
                 ImageUrl = bytes.Length > 0 ? "attachment://zap.jpg" : default,
             }.WithFooter(new EmbedFooterBuilder()
@@ -799,7 +804,10 @@ namespace SysBot.Pokemon
 
             if (!disband && names is null && !upnext)
             {
-                embed.AddField("**Waiting in lobby!**", $"Raid code: {code}");
+                if (Settings.HideRaidCode)
+                    embed.AddField("***Waiting in lobby!\n Join Raid Now***", $"**Twitch Stream:**\n[Click Here for Stream Link]({Settings.RaidStreamLink})");
+                else
+                    embed.AddField("**Waiting in lobby!\n Join Raid Now**", $"Raid code: {code}");
             }
 
             if (!disband && names is not null && !upnext)

@@ -347,7 +347,7 @@ namespace SysBot.Pokemon
                         var tr = trainers.FirstOrDefault(x => x.Item2.OT == trainer.OT);
                         if (tr != default)
                             Log($"Player {i + 2} matches lobby check for {trainer.OT}.");
-                        else Log($"New Player {i + 2}: {trainer.OT} | TID: {trainer.DisplayTID} | NID: {nid}.");
+                        else Log($"New Player {i + 2}: {trainer.OT} | TID: {trainer.DisplayTID} | SID: {trainer.DisplaySID} | NID: {nid}.");
                     }
                     var nidDupe = lobbyTrainersFinal.Select(x => x.Item1).ToList();
                     var dupe = lobbyTrainersFinal.Count > 1 && nidDupe.Distinct().Count() == 1;
@@ -661,7 +661,7 @@ namespace SysBot.Pokemon
 
         private async Task<bool> CheckIfTrainerBanned(TradeMyStatus trainer, ulong nid, int player, bool updateBanList, CancellationToken token)
         {
-            Log($"Player {player}: {trainer.OT} | TID: {trainer.DisplayTID} | NID: {nid}");
+            Log($"Player {player}: {trainer.OT} | TID: {trainer.DisplayTID} | SID: {trainer.DisplaySID} | NID: {nid}");
             if (!RaidTracker.ContainsKey(nid))
                 RaidTracker.Add(nid, 0);
 
