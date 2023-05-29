@@ -27,21 +27,17 @@ namespace SysBot.Pokemon
         [TypeConverter(typeof(ExpandableObjectConverter))]
         public TradeSettings Trade { get; set; } = new();
 
-        [Category(BotTrade)]
-        [TypeConverter(typeof(ExpandableObjectConverter))]
-        public SeedCheckSettings SeedCheckSWSH { get; set; } = new();
-
         [Category(BotTrade), Description("Settings for idle distribution trades.")]
         [TypeConverter(typeof(ExpandableObjectConverter))]
         public DistributionSettings Distribution { get; set; } = new();
 
         [Category(BotTrade)]
         [TypeConverter(typeof(ExpandableObjectConverter))]
-        public TradeAbuseSettings TradeAbuse { get; set; } = new();
+        public SeedCheckSettings SeedCheckSWSH { get; set; } = new();
 
         [Category(BotTrade)]
         [TypeConverter(typeof(ExpandableObjectConverter))]
-        public EtumrepDumpSettings EtumrepDump { get; set; } = new();
+        public TradeAbuseSettings TradeAbuse { get; set; } = new();
 
         // Encounter Bots - For finding or hosting Pokémon in-game.
 
@@ -67,14 +63,6 @@ namespace SysBot.Pokemon
 
         [Category(BotEncounter)]
         [TypeConverter(typeof(ExpandableObjectConverter))]
-        public FossilSettings FossilSWSH { get; set; } = new();
-
-        [Category(BotEncounter)]
-        [TypeConverter(typeof(ExpandableObjectConverter))]
-        public EggSettings EggSWSH { get; set; } = new();
-
-        [Category(BotEncounter)]
-        [TypeConverter(typeof(ExpandableObjectConverter))]
         public LairBotSettings LairSWSH { get; set; } = new();
 
         [Category(BotEncounter)]
@@ -92,6 +80,10 @@ namespace SysBot.Pokemon
         [Category(BotEncounter)]
         [TypeConverter(typeof(ExpandableObjectConverter))]
         public RollingRaidSettings RollingRaidSWSH { get; set; } = new();
+
+        [Category(BotTrade)]
+        [TypeConverter(typeof(ExpandableObjectConverter))]
+        public EtumrepDumpSettings EtumrepDump { get; set; } = new();
 
         [Category(BotEncounter)]
         [TypeConverter(typeof(ExpandableObjectConverter))]

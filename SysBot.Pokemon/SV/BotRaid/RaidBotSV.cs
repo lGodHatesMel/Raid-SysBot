@@ -9,12 +9,12 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using static SysBot.Base.SwitchButton;
 using static SysBot.Pokemon.RaidSettingsSV;
 using RaidCrawler.Core.Structures;
-using System.Text.RegularExpressions;
 
 namespace SysBot.Pokemon
 {
@@ -70,12 +70,6 @@ namespace SysBot.Pokemon
             if (Settings.ConfigureRolloverCorrection)
             {
                 await RolloverCorrectionSV(token).ConfigureAwait(false);
-                return;
-            }
-
-            if (Settings.RaidEmbedParameters.Count < 1)
-            {
-                Log("RaidEmbedParameters cannot be 0. Please setup your parameters for the raid(s) you are hosting.");
                 return;
             }
 
@@ -173,7 +167,6 @@ namespace SysBot.Pokemon
 
         private void DirectorySearch(string sDir, string data)
         {
-            Settings.RaidEmbedParameters.Clear();
             string contents = File.ReadAllText(sDir);
             string[] moninfo = contents.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             for (int i = 0; i < moninfo.Length; i++)
@@ -188,7 +181,7 @@ namespace SysBot.Pokemon
                     "7" => TeraCrystalType.Might,
                     _ => TeraCrystalType.Base,
                 };
-                RaidParameters param = new()
+                RaidEmbedFiltersCategory param = new()
                 {
                     Seed = monseed,
                     Title = montitle,
@@ -196,7 +189,7 @@ namespace SysBot.Pokemon
                     CrystalType = type,
                     PartyPK = new[] { data },
                 };
-                Settings.RaidEmbedParameters.Add(param);
+                Settings.RaidEmbedFilters = param;
                 Log($"Parameters generated from text file for {montitle}.");
             }
         }
@@ -218,13 +211,13 @@ namespace SysBot.Pokemon
                     Log($"Today Seed: {TodaySeed:X8}");
                 }
 
-                if (!Settings.RaidEmbedParameters[0].IsSet)
+                if (!Settings.RaidEmbedFilters.IsSet)
                 {
-                    Log($"Preparing parameter for {Settings.RaidEmbedParameters[0].Species}");
+                    Log($"Preparing parameter for {Settings.RaidEmbedFilters.Species}");
                     await ReadRaids(token).ConfigureAwait(false);
                 }
                 else
-                    Log($"Parameter for {Settings.RaidEmbedParameters[0].Species} has been set previously, skipping raid reads.");
+                    Log($"Parameter for {Settings.RaidEmbedFilters.Species} has been set previously, skipping raid reads.");
 
                 var currentSeed = BitConverter.ToUInt64(await SwitchConnection.ReadBytesAbsoluteAsync(TeraRaidBlockOffset, 8, token).ConfigureAwait(false), 0);
                 if (TodaySeed != currentSeed)
@@ -398,7 +391,7 @@ namespace SysBot.Pokemon
                     Log($"Player: {name} completed the raid with catch count: {Count}.");
 
                     if (Settings.CatchLimit != 0 && Count == Settings.CatchLimit)
-                        Log($"Player: {name} has met the catch limit {Count}/{Settings.CatchLimit}, adding to the block list for this session for {Settings.RaidEmbedParameters[0].Species}.");
+                        Log($"Player: {name} has met the catch limit {Count}/{Settings.CatchLimit}, adding to the block list for this session for {Settings.RaidEmbedFilters.Species}.");
                 }
             }
         }
@@ -466,13 +459,13 @@ namespace SysBot.Pokemon
         private async Task<bool> PrepareForRaid(CancellationToken token)
         {
             var len = string.Empty;
-            foreach (var l in Settings.RaidEmbedParameters[0].PartyPK)
+            foreach (var l in Settings.RaidEmbedFilters.PartyPK)
                 len += l;
             if (len.Length > 1 && EmptyRaid == 0)
             {
                 Log("Preparing PartyPK to inject..");
                 await SetCurrentBox(0, token).ConfigureAwait(false);
-                var res = string.Join("\n", Settings.RaidEmbedParameters[0].PartyPK);
+                var res = string.Join("\n", Settings.RaidEmbedFilters.PartyPK);
                 if (res.Length > 4096)
                     res = res[..4096];
                 InjectPartyPk(res);
@@ -516,9 +509,9 @@ namespace SysBot.Pokemon
             await Click(A, 3_000, token).ConfigureAwait(false);
             await Click(A, 3_000, token).ConfigureAwait(false);
 
-            if (!Settings.RaidEmbedParameters[0].IsCoded || Settings.RaidEmbedParameters[0].IsCoded && EmptyRaid == Settings.EmptyRaidLimit)
+            if (!Settings.RaidEmbedFilters.IsCoded || Settings.RaidEmbedFilters.IsCoded && EmptyRaid == Settings.EmptyRaidLimit)
             {
-                if (Settings.RaidEmbedParameters[0].IsCoded && EmptyRaid == Settings.EmptyRaidLimit)
+                if (Settings.RaidEmbedFilters.IsCoded && EmptyRaid == Settings.EmptyRaidLimit)
                     Log($"We had {Settings.EmptyRaidLimit} empty raids.. Opening this raid to all!");
                 await Click(DDOWN, 1_000, token).ConfigureAwait(false);
             }
@@ -579,7 +572,7 @@ namespace SysBot.Pokemon
                 }
                 if (val == Settings.CatchLimit + 2 && Settings.CatchLimit != 0) // Hard pity - ban user
                 {
-                    msg = $"{trainer.OT} is now banned for repeatedly attempting to go beyond the catch limit for {Settings.RaidEmbedParameters[0].Species} on {DateTime.Now}.";
+                    msg = $"{trainer.OT} is now banned for repeatedly attempting to go beyond the catch limit for {Settings.RaidEmbedFilters.Species} on {DateTime.Now}.";
                     Log(msg);
                     RaiderBanList.List.Add(new() { ID = nid, Name = trainer.OT, Comment = msg });
                     blockResult = false;
@@ -766,18 +759,18 @@ namespace SysBot.Pokemon
         private async Task EnqueueEmbed(List<string>? names, string message, bool hatTrick, bool disband, bool upnext, CancellationToken token)
         {
             // Title can only be up to 256 characters.
-            var title = hatTrick && names is not null ? $"**🪄🎩✨ {names[0]} with the Hat Trick! ✨🎩🪄**" : Settings.RaidEmbedParameters[0].Title.Length > 0 ? Settings.RaidEmbedParameters[0].Title : "Tera Raid Notification";
+            var title = hatTrick && names is not null ? $"**🪄🎩✨ {names[0]} with the Hat Trick! ✨🎩🪄**" : Settings.RaidEmbedFilters.Title.Length > 0 ? Settings.RaidEmbedFilters.Title : "Tera Raid Notification";
             if (title.Length > 256)
                 title = title[..256];
 
             // Description can only be up to 4096 characters.
-            var description = Settings.RaidEmbedParameters[0].Description.Length > 0 ? string.Join("\n", Settings.RaidEmbedParameters[0].Description) : "";
+            var description = Settings.RaidEmbedFilters.Description.Length > 0 ? string.Join("\n", Settings.RaidEmbedFilters.Description) : "";
             if (description.Length > 4096)
                 description = description[..4096];
 
             string code = string.Empty;
             if (names is null && !upnext)
-                code = $"**{(Settings.RaidEmbedParameters[0].IsCoded && EmptyRaid < Settings.EmptyRaidLimit ? await GetRaidCode(token).ConfigureAwait(false) : "Free For All")}**";
+                code = $"**{(Settings.RaidEmbedFilters.IsCoded && EmptyRaid < Settings.EmptyRaidLimit ? await GetRaidCode(token).ConfigureAwait(false) : "Free For All")}**";
 
             if (EmptyRaid == Settings.EmptyRaidLimit)
                 EmptyRaid = 0;
@@ -800,8 +793,8 @@ namespace SysBot.Pokemon
             var embed = new EmbedBuilder()
             {
                 Title = disband ? $"**Raid canceled: [{TeraRaidCode}]**" : title,
-                Color = disband ? Color.Red : hatTrick ? Color.Blue : Color.DarkPurple,
-                Description = disband ? message : upnext ? Settings.RaidEmbedParameters[0].Title : description,
+                Color = disband ? Color.Red : hatTrick ? Color.Blue : Color.Purple,
+                Description = disband ? message : upnext ? Settings.RaidEmbedFilters.Title : description,
                 ImageUrl = bytes.Length > 0 ? "attachment://zap.jpg" : default,
             }.WithFooter(new EmbedFooterBuilder()
             {
@@ -839,22 +832,22 @@ namespace SysBot.Pokemon
 
             PK9 pk = new()
             {
-                Species = (ushort)Settings.RaidEmbedParameters[0].Species,
-                Form = (byte)Settings.RaidEmbedParameters[0].SpeciesForm
+                Species = (ushort)Settings.RaidEmbedFilters.Species,
+                Form = (byte)Settings.RaidEmbedFilters.SpeciesForm
             };
             if (pk.Form != 0)
                 form = $"-{pk.Form}";
-            if (Settings.RaidEmbedParameters[0].IsShiny == true)
+            if (Settings.RaidEmbedFilters.IsShiny == true)
                 CommonEdits.SetIsShiny(pk, true);
             else
                 CommonEdits.SetIsShiny(pk, false);
 
-            if (Settings.RaidEmbedParameters[0].SpriteAlternateArt && Settings.RaidEmbedParameters[0].IsShiny)
+            if (Settings.SpriteAlternateArt && Settings.RaidEmbedFilters.IsShiny)
                 turl = AltPokeImg(pk);
             else
                 turl = TradeExtensions<PK9>.PokeImg(pk, false, false);
 
-            if (Settings.RaidEmbedParameters[0].Species is 0)
+            if (Settings.RaidEmbedFilters.Species is 0)
                 turl = "https://i.imgur.com/uHSaGGJ.png";
 
             var fileName = $"raidecho{0}.jpg";
@@ -945,9 +938,9 @@ namespace SysBot.Pokemon
         {
             PK9 pk = new()
             {
-                Species = (ushort)Settings.RaidEmbedParameters[0].Species
+                Species = (ushort)Settings.RaidEmbedFilters.Species
             };
-            if (Settings.RaidEmbedParameters[0].IsShiny)
+            if (Settings.RaidEmbedFilters.IsShiny)
                 CommonEdits.SetIsShiny(pk, true);
             else
                 CommonEdits.SetIsShiny(pk, false);
@@ -1000,17 +993,16 @@ namespace SysBot.Pokemon
                     continue;
 
                 var (pk, seed) = IsSeedReturned(encounters[i], raids[i]);
-
-                var set = uint.Parse(Settings.RaidEmbedParameters[0].Seed, NumberStyles.AllowHexSpecifier);
+                var set = uint.Parse(Settings.RaidEmbedFilters.Seed, NumberStyles.AllowHexSpecifier);
                 if (seed == set)
                 {
                     var res = GetSpecialRewards(rewards[i]);
                     if (string.IsNullOrEmpty(res))
                         res = string.Empty;
                     else
-                        res = Environment.NewLine + "**Special Rewards:**" + Environment.NewLine + res;
+                        res = "**Special Rewards:**\n" + res;
                     Log($"Seed {seed:X8} found for {(Species)pk.Species}");
-                    Settings.RaidEmbedParameters[0].Seed = $"{seed:X8}";
+                    Settings.RaidEmbedFilters.Seed = $"{seed:X8}";
                     var stars = RaidExtensions.GetStarCount(raids[i], raids[i].Difficulty, StoryProgress, raids[i].IsBlack);
                     string starcount = string.Empty;
                     switch (stars)
@@ -1023,38 +1015,42 @@ namespace SysBot.Pokemon
                         case 6: starcount = "6 ☆"; break;
                         case 7: starcount = "7 ☆"; break;
                     }
-                    Settings.RaidEmbedParameters[0].IsShiny = raids[i].IsShiny;
-                    Settings.RaidEmbedParameters[0].CrystalType = raids[i].IsBlack ? TeraCrystalType.Black : raids[i].IsEvent ? TeraCrystalType.Might : TeraCrystalType.Base;
-                    Settings.RaidEmbedParameters[0].Species = (Species)pk.Species;
-                    Settings.RaidEmbedParameters[0].SpeciesForm = pk.Form;
+                    Settings.RaidEmbedFilters.IsShiny = raids[i].IsShiny;
+                    Settings.RaidEmbedFilters.CrystalType = raids[i].IsBlack ? TeraCrystalType.Black : raids[i].IsEvent ? TeraCrystalType.Might : TeraCrystalType.Base;
+                    Settings.RaidEmbedFilters.Species = (Species)pk.Species;
+                    Settings.RaidEmbedFilters.SpeciesForm = pk.Form;
                     var catchlimit = Settings.CatchLimit;
                     string cl = catchlimit is 0 ? "\n**No catch limit!**" : $"\n**Catch Limit: {catchlimit}**";
                     var pkinfo = Hub.Config.StopConditions.GetRaidPrintName(pk);
+                    pkinfo += $"\nTera Type: {(MoveType)raids[i].TeraType}";
                     var strings = GameInfo.GetStrings(1);
                     var moves = new ushort[4] { encounters[i].Move1, encounters[i].Move2, encounters[i].Move3, encounters[i].Move4 };
-                    var movestr = string.Concat(moves.Where(z => z != 0).Select(z => $"{strings.Move[z]}ㅤ\n")).Trim();
+                    var movestr = string.Concat(moves.Where(z => z != 0).Select(z => $"{strings.Move[z]}ㅤ{Environment.NewLine}")).TrimEnd(Environment.NewLine.ToCharArray());
                     var extramoves = string.Empty;
-                    var des = string.Empty;
                     if (encounters[i].ExtraMoves.Length != 0)
-                        extramoves = "\n**Extra Moves:**\n" + string.Concat(encounters[i].ExtraMoves.Where(z => z != 0).Select(z => $"{strings.Move[z]}ㅤ\n")).Trim();
+                    {
+                        var extraMovesList = encounters[i].ExtraMoves.Where(z => z != 0).Select(z => $"{strings.Move[z]}ㅤ{Environment.NewLine}");
+                        extramoves = string.Concat(extraMovesList.Take(extraMovesList.Count() - 1)).TrimEnd(Environment.NewLine.ToCharArray());
+                        extramoves += extraMovesList.LastOrDefault()?.TrimEnd(Environment.NewLine.ToCharArray());
+                    }
 
                     if (Settings.UsePresetFile)
                     {
                         string tera = $"{(MoveType)raids[i].TeraType}";
-                        if (!string.IsNullOrEmpty(Settings.RaidEmbedParameters[0].Title))
-                            ModDescription[0] = Settings.RaidEmbedParameters[0].Title;
+                        if (!string.IsNullOrEmpty(Settings.RaidEmbedFilters.Title))
+                            ModDescription[0] = Settings.RaidEmbedFilters.Title;
 
-                        if (Settings.RaidEmbedParameters[0].Description.Length > 0)
+                        if (Settings.RaidEmbedFilters.Description.Length > 0)
                         {
-                            string[] presetOverwrite = new string[Settings.RaidEmbedParameters[0].Description.Length + 1];
+                            string[] presetOverwrite = new string[Settings.RaidEmbedFilters.Description.Length + 1];
                             presetOverwrite[0] = ModDescription[0];
-                            for (int l = 0; l < Settings.RaidEmbedParameters[0].Description.Length; l++)
-                                presetOverwrite[l + 1] = Settings.RaidEmbedParameters[0].Description[l];
+                            for (int l = 0; l < Settings.RaidEmbedFilters.Description.Length; l++)
+                                presetOverwrite[l + 1] = Settings.RaidEmbedFilters.Description[l];
 
                             ModDescription = presetOverwrite;
                         }
 
-                        var raidDescription = ProcessRaidPlaceholders(ModDescription, pk, movestr, extramoves);
+                        var raidDescription = ProcessRaidPlaceholders(ModDescription, pk);
 
                         for (int j = 0; j < raidDescription.Length; j++)
                         {
@@ -1062,28 +1058,38 @@ namespace SysBot.Pokemon
                             .Replace("{tera}", tera)
                             .Replace("{difficulty}", $"{stars}")
                             .Replace("{stars}", starcount)
+                            .Replace("{rewards}", res)
                             .Trim();
                             raidDescription[j] = Regex.Replace(raidDescription[j], @"\s+", " ");
                         }
-                        Settings.RaidEmbedParameters[0].Description = raidDescription;
-                    }
+                        if (Settings.PresetFilters.IncludeMoves)
+                            raidDescription = raidDescription.Concat(new string[] { Environment.NewLine, movestr, extramoves }).ToArray();
 
-                    else                                            
-                        Settings.RaidEmbedParameters[0].Description = new[] { "\n**Raid Info:**", pkinfo, cl, "\n**Moveset:**", movestr, extramoves, BaseDescription, res };
+                        if (Settings.PresetFilters.IncludeRewards)
+                            raidDescription = raidDescription.Concat(new string[] { res.Replace("\n", Environment.NewLine) }).ToArray();
 
-                    Settings.RaidEmbedParameters[0].Title = $"{(Species)pk.Species} {starcount} - {(MoveType)raids[i].TeraType}";
-                    Settings.RaidEmbedParameters[0].IsSet = true;
-                    if (RaidCount == 0)
-                    {
-                        RaidParameters param = new();
-                        param = Settings.RaidEmbedParameters[0];
-                        foreach (var p in Settings.RaidEmbedParameters.ToList())
+                        if (Settings.PresetFilters.TitleFromPreset)
                         {
-                            if (p.Seed == param.Seed)
-                                Settings.RaidEmbedParameters.Remove(p);
+                            if (string.IsNullOrEmpty(Settings.RaidEmbedFilters.Title) || Settings.PresetFilters.ForceTitle)
+                                Settings.RaidEmbedFilters.Title = raidDescription[0];
+
+                            if (Settings.RaidEmbedFilters.Description == null || Settings.RaidEmbedFilters.Description.Length == 0 || Settings.RaidEmbedFilters.Description.All(string.IsNullOrEmpty) || Settings.PresetFilters.ForceDescription)
+                                Settings.RaidEmbedFilters.Description = raidDescription.Skip(1).ToArray();
                         }
-                        Settings.RaidEmbedParameters.Insert(0, param);
+                        else if (!Settings.PresetFilters.TitleFromPreset)
+                        {
+                            if (Settings.RaidEmbedFilters.Description == null || Settings.RaidEmbedFilters.Description.Length == 0 || Settings.RaidEmbedFilters.Description.All(string.IsNullOrEmpty) || Settings.PresetFilters.ForceDescription)
+                                Settings.RaidEmbedFilters.Description = raidDescription.ToArray();
+                        }
                     }
+
+                    else if (!Settings.UsePresetFile)
+                    {
+                        Settings.RaidEmbedFilters.Description = new[] { "\n**Raid Info:**", pkinfo, "\n**Moveset:**", movestr, extramoves, BaseDescription, res };
+                        Settings.RaidEmbedFilters.Title = $"{(Species)pk.Species} {starcount} - {(MoveType)raids[i].TeraType}";
+                    }
+
+                    Settings.RaidEmbedFilters.IsSet = true;
                     done = true;
                 }
             }

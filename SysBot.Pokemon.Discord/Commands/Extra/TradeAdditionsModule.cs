@@ -401,7 +401,7 @@ namespace SysBot.Pokemon.Discord
 
             List<ulong> channels = new();
             List<ITextChannel> embedChannels = new();
-            if (!RollingRaidBot.RollingRaidEmbedsInitialized)
+            if (!RollingRaidBotSWSH.RollingRaidEmbedsInitialized)
             {
                 var chStrings = RollingRaidSettings.RollingRaidEmbedChannels.Split(',');
                 foreach (var channel in chStrings)
@@ -433,24 +433,24 @@ namespace SysBot.Pokemon.Discord
                 }
             }
 
-            RollingRaidBot.RollingRaidEmbedsInitialized ^= true;
-            await ReplyAsync(!RollingRaidBot.RollingRaidEmbedsInitialized ? "RollingRaid Embed task stopped!" : "RollingRaid Embed task started!").ConfigureAwait(false);
+            RollingRaidBotSWSH.RollingRaidEmbedsInitialized ^= true;
+            await ReplyAsync(!RollingRaidBotSWSH.RollingRaidEmbedsInitialized ? "RollingRaid Embed task stopped!" : "RollingRaid Embed task started!").ConfigureAwait(false);
 
-            if (!RollingRaidBot.RollingRaidEmbedsInitialized)
+            if (!RollingRaidBotSWSH.RollingRaidEmbedsInitialized)
             {
-                RollingRaidBot.RaidEmbedSource.Cancel();
+                RollingRaidBotSWSH.RaidEmbedSource.Cancel();
                 return;
             }
 
-            RollingRaidBot.RaidEmbedSource = new();
+            RollingRaidBotSWSH.RaidEmbedSource = new();
             _ = Task.Run(async () => await RollingRaidEmbedLoop(embedChannels).ConfigureAwait(false));
         }
 
         private static async Task RollingRaidEmbedLoop(List<ITextChannel> channels)
         {
-            while (!RollingRaidBot.RaidEmbedSource.IsCancellationRequested)
+            while (!RollingRaidBotSWSH.RaidEmbedSource.IsCancellationRequested)
             {
-                if (RollingRaidBot.EmbedQueue.TryDequeue(out var embedInfo))
+                if (RollingRaidBotSWSH.EmbedQueue.TryDequeue(out var embedInfo))
                 {
                     var url = TradeExtensions<T>.PokeImg(embedInfo.Item1, embedInfo.Item1.CanGigantamax, false);
                     var embed = new EmbedBuilder
@@ -655,7 +655,7 @@ namespace SysBot.Pokemon.Discord
         }
 
         [Command("addRaidParams")]
-        [Alias("arp")]
+        [Alias("arp", "addraid", "ar")]
         [Summary("Adds new raid parameter.")]
         [RequireSudo]
         public async Task AddNewRaidParam([Summary("Seed")] string seed, [Summary("Species Type")] string species, [Summary("Content Type")] string content)
@@ -705,7 +705,7 @@ namespace SysBot.Pokemon.Discord
         }
 
         [Command("removeRaidParams")]
-        [Alias("rrp")]
+        [Alias("rrp", "rr")]
         [Summary("Adds new raid parameter.")]
         [RequireSudo]
         public async Task RemoveRaidParam([Summary("Seed")] string seed)
@@ -727,7 +727,7 @@ namespace SysBot.Pokemon.Discord
         }
 
         [Command("toggleRaidParams")]
-        [Alias("trp")]
+        [Alias("trp", "tr")]
         [Summary("Toggles raid parameter.")]
         [RequireSudo]
         public async Task DeactivateRaidParam([Summary("Seed")] string seed)
@@ -753,7 +753,7 @@ namespace SysBot.Pokemon.Discord
         }
 
         [Command("togglecodeRaidParams")]
-        [Alias("tcrp")]
+        [Alias("tcrp", "trc")]
         [Summary("Toggles code raid parameter.")]
         [RequireSudo]
         public async Task ToggleCodeRaidParam([Summary("Seed")] string seed)
@@ -825,7 +825,7 @@ namespace SysBot.Pokemon.Discord
         }
 
         [Command("toggleRaidPK")]
-        [Alias("trpk")]
+        [Alias("trpk", "arpk", "addpk")]
         [Summary("Toggles raid parameter.")]
         [RequireSudo]
         public async Task ToggleRaidParamPK([Summary("Seed")] string seed, [Summary("Showdown Set")][Remainder] string content)
@@ -872,6 +872,32 @@ namespace SysBot.Pokemon.Discord
                 x.IsInline = false;
             });
             await ReplyAsync("Here's your raid help!", embed: embed.Build()).ConfigureAwait(false);
+        }
+
+        [Command("toggleAltArt")]
+        [Alias("taa")]
+        [Summary("Toggles alternate art parameter.")]
+        [RequireSudo]
+        public async Task ToggleAlternateArtParam([Summary("Seed")] string seed)
+        {
+
+            var deactivate = uint.Parse(seed, NumberStyles.AllowHexSpecifier);
+            var list = SysCord<T>.Runner.Hub.Config.RotatingRaidSV.RaidEmbedParameters;
+            foreach (var s in list)
+            {
+                var def = uint.Parse(s.Seed, NumberStyles.AllowHexSpecifier);
+                if (def == deactivate)
+                {
+                    if (s.SpriteAlternateArt == false)
+                        s.SpriteAlternateArt = true;
+                    else
+                        s.SpriteAlternateArt = false;
+                    var m = s.SpriteAlternateArt == false ? "Normal Art" : "Alternate Art";
+                    var msg = $"Raid for {s.Species} | {s.Seed:X8} is now using {m}!";
+                    await ReplyAsync(msg).ConfigureAwait(false);
+                    return;
+                }
+            }
         }
     }
 }
