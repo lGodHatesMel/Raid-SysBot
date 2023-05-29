@@ -22,15 +22,6 @@ namespace SysBot.Pokemon
         public TimingSettings Timings { get; set; } = new();
 
         // Trade Bots
-
-        [Category(BotTrade)]
-        [TypeConverter(typeof(ExpandableObjectConverter))]
-        public TradeSettings Trade { get; set; } = new();
-
-        [Category(BotTrade), Description("Settings for idle distribution trades.")]
-        [TypeConverter(typeof(ExpandableObjectConverter))]
-        public DistributionSettings Distribution { get; set; } = new();
-
         [Category(BotTrade)]
         [TypeConverter(typeof(ExpandableObjectConverter))]
         public SeedCheckSettings SeedCheckSWSH { get; set; } = new();
@@ -85,6 +76,14 @@ namespace SysBot.Pokemon
         [TypeConverter(typeof(ExpandableObjectConverter))]
         public EtumrepDumpSettings EtumrepDump { get; set; } = new();
 
+        [Category(BotTrade)]
+        [TypeConverter(typeof(ExpandableObjectConverter))]
+        public TradeSettings Trade { get; set; } = new();
+
+        [Category(BotTrade), Description("Settings for idle distribution trades.")]
+        [TypeConverter(typeof(ExpandableObjectConverter))]
+        public DistributionSettings Distribution { get; set; } = new();
+
         [Category(BotEncounter)]
         [TypeConverter(typeof(ExpandableObjectConverter))]
         public OverworldSettingsSV OverworldSV { get; set; } = new();
@@ -111,13 +110,13 @@ namespace SysBot.Pokemon
         [TypeConverter(typeof(ExpandableObjectConverter))]
         public TwitchSettings Twitch { get; set; } = new();
 
-        [Category(Integration)]
-        [TypeConverter(typeof(ExpandableObjectConverter))]
-        public YouTubeSettings YouTube { get; set; } = new();
-
         [Category(Integration), Description("Configure generation of assets for streaming.")]
         [TypeConverter(typeof(ExpandableObjectConverter))]
         public StreamSettings Stream { get; set; } = new();
+
+        [Category(Integration)]
+        [TypeConverter(typeof(ExpandableObjectConverter))]
+        public YouTubeSettings YouTube { get; set; } = new();
 
         [Category(Integration), Description("Allows favored users to join the queue with a more favorable position than unfavored users.")]
         [TypeConverter(typeof(ExpandableObjectConverter))]
