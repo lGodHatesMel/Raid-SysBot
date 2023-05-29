@@ -1,10 +1,9 @@
 ﻿using PKHeX.Core;
-using System.ComponentModel;
-using SysBot.Base;
-using System.Threading;
-using System.Collections.Generic;
 using System;
-using static SysBot.Pokemon.RaidSettingsSV;
+using SysBot.Base;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Threading;
 
 namespace SysBot.Pokemon
 {
@@ -13,7 +12,7 @@ namespace SysBot.Pokemon
         private const string Hosting = nameof(Hosting);
         private const string Counts = nameof(Counts);
         private const string FeatureToggle = nameof(FeatureToggle);
-        public override string ToString() => "RotatingRaidBotSV Settings";
+        public override string ToString() => "RaidBotSV Settings";
 
         [Category(FeatureToggle), Description("URL link for Tera Ban List json (or one matching the required structure).")]
         public string BanListURL { get; set; } = "https://raw.githubusercontent.com/lGodHatesMel/SysBot.PokemonScarletViolet/main/Resources/RaidSysBotUserBanlist.JSON";
@@ -32,7 +31,7 @@ namespace SysBot.Pokemon
 
         [Category(FeatureToggle), Description("If using The `HideRaidCode` Option then add your stream Link URL Here.")]
         public string RaidStreamLink { get; set; } = "https://www.twitch.tv/lgodhatesmel";
-
+        
         [Category(Hosting), Description("Raid embed parameters.")]
         public List<RotatingRaidParameters> RaidEmbedParameters { get; set; } = new();
 
@@ -40,7 +39,7 @@ namespace SysBot.Pokemon
         public int CatchLimit { get; set; } = 0;
 
         [Category(Hosting), Description("Minimum amount of seconds to wait before starting a raid.")]
-        public int TimeToWait { get; set; } = 110;
+        public int TimeToWait { get; set; } = 90;
 
         [Category(Hosting), Description("Lobby Options"), DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
         public LobbyFiltersCategory LobbyOptions { get; set; } = new();
@@ -91,31 +90,24 @@ namespace SysBot.Pokemon
             if (!EmitCountsOnStatusCheck)
                 yield break;
             if (CompletedRaids != 0)
-                yield return $"Total Raids Completed: {CompletedRaids}";
+                yield return $"Started Raids: {CompletedRaids}";
         }
 
         public class RotatingRaidParameters
         {
             public override string ToString() => $"{Title}";
-            public string Title { get; set; } = string.Empty;
+            public bool ActiveInRotation { get; set; } = true;
+            public TeraCrystalType CrystalType { get; set; } = TeraCrystalType.Base;
             public string[] Description { get; set; } = Array.Empty<string>();
+            public bool IsCoded { get; set; } = true;
+            public bool IsSet { get; set; } = false;
+            public bool IsShiny { get; set; } = true;
             public Species Species { get; set; } = Species.None;
             public int SpeciesForm { get; set; } = 0;
-            public bool IsShiny { get; set; } = true;
-            public TeraCrystalType CrystalType { get; set; } = TeraCrystalType.Base;
-            public bool IsCoded { get; set; } = true;
-            public bool SpriteAlternateArt { get; set; } = false;
-            public string Seed { get; set; } = "0";
             public string[] PartyPK { get; set; } = Array.Empty<string>();
-            public bool ActiveInRotation { get; set; } = true;
-            public bool IsSet { get; set; } = false;
-        }
-
-        public enum LobbyMethodOptions
-        {
-            OpenLobby,
-            SkipRaid,
-            ContinueRaid,
+            public bool SpriteAlternateArt { get; set; } = true;
+            public string Seed { get; set; } = "0";
+            public string Title { get; set; } = string.Empty;
         }
 
         [Category(Hosting)]
@@ -156,7 +148,7 @@ namespace SysBot.Pokemon
             public int EmptyRaidLimit { get; set; } = 2;
 
             [Category(Hosting), Description("Empty/Lost raid limit per parameter before the bot moves on to the next one. Default is 3 raids.")]
-            public int SkipRaidLimit { get; set; } = 1;
+            public int SkipRaidLimit { get; set; } = 2;
         }
 
         public class RotatingRaidPresetFiltersCategoryConverter : TypeConverter

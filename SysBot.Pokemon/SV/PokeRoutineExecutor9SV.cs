@@ -6,10 +6,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using RaidCrawler.Core.Structures;
 using static SysBot.Pokemon.PokeDataOffsetsSV;
 using static SysBot.Base.SwitchButton;
 using static System.Buffers.Binary.BinaryPrimitives;
-using RaidCrawler.Core.Structures;
 
 namespace SysBot.Pokemon
 {
@@ -580,7 +580,7 @@ namespace SysBot.Pokemon
             string[] raidDescription = Array.Empty<string>();
 
             if (description.Length > 0)            
-                raidDescription = description.ToArray();            
+                raidDescription = description.ToArray();         
 
             string markEntryText = "";
             string markTitle = "";
@@ -604,7 +604,7 @@ namespace SysBot.Pokemon
             string ability = $"{(Ability)pk.Ability}";
 
             if (pk.IV_HP == 31 && pk.IV_ATK == 31 && pk.IV_DEF == 31 && pk.IV_SPA == 31 && pk.IV_SPD == 31 && pk.IV_SPE == 31)            
-                MaxIV = "6IV";
+                MaxIV = "6IV";            
 
             StopConditionSettings.HasMark((IRibbonIndex)pk, out RibbonIndex mark);
             if (mark == RibbonIndex.MarkMightiest)
@@ -629,7 +629,7 @@ namespace SysBot.Pokemon
             raidDescription[i] = raidDescription[i].Replace("{markEntryText}", markEntryText)
                     .Replace("{markTitle}", markTitle).Replace("{scaleText}", scaleText).Replace("{scaleNumber}", scaleNumber).Replace("{shinySymbol}", shinySymbol).Replace("{shinySymbolText}", shinySymbolText)
                     .Replace("{shinyText}", shiny).Replace("{species}", species).Replace("{IVList}", IVList).Replace("{MaxIV}",MaxIV).Replace("{HP}", HP).Replace("{ATK}", ATK).Replace("{DEF}", DEF).Replace("{SPA}", SPA)
-                    .Replace("{SPD}", SPD).Replace("{SPE}", SPE).Replace("{nature}", nature).Replace("{ability}", ability).Replace("{genderSymbol}", genderSymbol).Replace("{genderText}", genderText);;
+                    .Replace("{SPD}", SPD).Replace("{SPE}", SPE).Replace("{nature}", nature).Replace("{ability}", ability).Replace("{genderSymbol}", genderSymbol).Replace("{genderText}", genderText);
 
             return (raidDescription);
         }

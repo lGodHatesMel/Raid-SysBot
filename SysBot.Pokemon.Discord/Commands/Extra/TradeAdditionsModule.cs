@@ -521,8 +521,8 @@ namespace SysBot.Pokemon.Discord
             await ReplyAsync(!ArceusBot.EmbedsInitialized ? "Arceus Embed task started!" : "Arceus Embed task stopped!").ConfigureAwait(false);
             if (ArceusBot.EmbedsInitialized)
                 ArceusBot.EmbedSource.Cancel();
-            //else _ = Task.Run(async () => await ArceusEmbedLoop(channels, ArceusBot.EmbedSource.Token).ConfigureAwait(false));
-            //ArceusBot.EmbedsInitialized ^= true;
+            // else _ = Task.Run(async () => await ArceusEmbedLoop(channels, ArceusBot.EmbedSource.Token).ConfigureAwait(false));
+            // ArceusBot.EmbedsInitialized ^= true;
         }
 
         // private async Task ArceusEmbedLoop(List<ulong> channels, CancellationToken token)
@@ -689,14 +689,14 @@ namespace SysBot.Pokemon.Discord
 
             RotatingRaidSettingsSV.RotatingRaidParameters newparam = new()
             {
-                CrystalType = (RaidSettingsSV.TeraCrystalType)type,                
+                CrystalType = (TeraCrystalType)type,                
                 Description = new[] { description },
                 PartyPK = new[] { data },
                 Species = parse,
                 SpeciesForm = 0,
                 Seed = seed,
                 IsCoded = true,
-                Title = $"{parse} ☆ - {(RaidSettingsSV.TeraCrystalType)type}",
+                Title = $"{parse} ☆ - {(TeraCrystalType)type}",
             };
 
             SysCord<T>.Runner.Hub.Config.RotatingRaidSV.RaidEmbedParameters.Add(newparam);
@@ -778,8 +778,8 @@ namespace SysBot.Pokemon.Discord
             }
         }
 
-        [Command("changeRaidTitle")]
-        [Alias("crpt")]
+        [Command("changeRaidParamTitle")]
+        [Alias("crpt", "crt")]
         [Summary("Adds new raid parameter.")]
         [RequireSudo]
         public async Task ChangeRaidParamTite([Summary("Seed")] string seed, [Summary("Content Type")] string title)
@@ -862,7 +862,8 @@ namespace SysBot.Pokemon.Discord
                 "$trp - Toggle the parameter as Active/Inactive in the collection.\nEx: [Command] [Seed]\n",
                 "$tcrp - Toggle the parameter as Coded/Uncoded in the collection.\nEx: [Command] [Seed]\n",
                 "$trpk - Set a PartyPK for the parameter via a showdown set.\nEx: [Command] [Seed] [ShowdownSet]\n",
-                "$crpt - Set the title for the parameter.\nEx: [Command] [Seed]"
+                "$crpt - Set the title for the parameter.\nEx: [Command] [Seed]",
+                "$taa - Toggles alternate art parameter.\nEx: [Command] [Seed]"
             };
             string msg = string.Join("", cmds.ToList());
             embed.AddField(x =>

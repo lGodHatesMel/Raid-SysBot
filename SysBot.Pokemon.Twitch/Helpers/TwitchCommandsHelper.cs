@@ -50,7 +50,7 @@ namespace SysBot.Pokemon.Twitch
 
                 if (!pkm.CanBeTraded())
                 {
-                    msg = $"Skipping trade, @{username}: Provided Pokï¿½mon content is blocked from trading!";
+                    msg = $"Skipping trade, @{username}: Provided Pokémon content is blocked from trading!";
                     return false;
                 }
 
@@ -67,7 +67,7 @@ namespace SysBot.Pokemon.Twitch
                     }
                 }
 
-                var reason = result == "Timeout" ? "Set took too long to generate." : "Unable to legalize the Pokï¿½mon.";
+                var reason = result == "Timeout" ? "Set took too long to generate." : "Unable to legalize the Pokémon.";
                 msg = $"Skipping trade, @{username}: {reason}";
             }
             catch (Exception ex)

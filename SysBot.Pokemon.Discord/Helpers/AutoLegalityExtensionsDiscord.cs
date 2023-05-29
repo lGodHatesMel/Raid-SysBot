@@ -1,4 +1,4 @@
-﻿﻿using Discord;
+﻿using Discord;
 using Discord.WebSocket;
 using PKHeX.Core;
 using SysBot.Base;
