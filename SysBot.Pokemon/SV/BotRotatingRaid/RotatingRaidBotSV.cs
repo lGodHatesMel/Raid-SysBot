@@ -914,10 +914,7 @@ namespace SysBot.Pokemon
 
             if (upnext)
             {
-                if (Settings.HideRaidCode)
-                    title = $"Preparing next raid...\n\nGet Raid code for this raid on my Twitch Stream\n\n[Stream Link Below]\n{Settings.RaidStreamLink}";
-                else
-                    title = "Preparing next raid...";
+                title = "Preparing next raid...";
             }
 
             var embed = new EmbedBuilder()
@@ -929,15 +926,26 @@ namespace SysBot.Pokemon
             }.WithFooter(new EmbedFooterBuilder()
             {
                 Text = $"Host: {HostSAV.OT} | Uptime: {StartTime - DateTime.Now:d\\.hh\\:mm\\:ss}\n" +
-                       $"Raids: {RaidCount} | Wins: {WinCount} | Losses: {LossCount}"
+                       $"Raids: {RaidCount} | Wins: {WinCount} | Losses: {LossCount}\n" +
+                       $"Command For This Bot: {Hub.Config.Discord.CommandPrefix}"
             });
 
             if (!disband && names is null && !upnext)
             {
                 if (Settings.HideRaidCode)
-                    embed.AddField("***Waiting in lobby!\n Join Raid Now***", $"**Twitch Stream:**\n[Click Here for Stream Link]({Settings.RaidStreamLink})");
+                {
+                    if (Settings.RaidEmbedParameters[RotationCount].IsCoded)
+                        embed.AddField("***Waiting in lobby!\n Join Raid Now***", $"**Twitch Stream:**\n[Click Here for Stream Link]({Settings.RaidStreamLink})");
+                    else
+                        embed.AddField("**Waiting in lobby!**", $"Raid Code: Free For All");
+                }
                 else
-                    embed.AddField("**Waiting in lobby!\n Join Raid Now**", $"Raid code: {code}");
+                {
+                    if (Settings.RaidEmbedParameters[RotationCount].IsCoded)
+                        embed.AddField("**Waiting in lobby!**", $"Raid Code: {code}");
+                    else 
+                        embed.AddField("**Waiting in lobby!**", $"Raid Code: Free For All");
+                }
             }
 
             if (!disband && names is not null && !upnext)
@@ -1141,7 +1149,7 @@ namespace SysBot.Pokemon
                 CommonEdits.SetIsShiny(pk, false);
             PK9 pknext = new()
             {
-                Species = Settings.RaidEmbedParameters.Count > 1 && Settings.RaidEmbedParameters.Count < RotationCount ? (ushort)Settings.RaidEmbedParameters[RotationCount + 1].Species : (ushort)Settings.RaidEmbedParameters[RotationCount].Species,
+                Species = Settings.RaidEmbedParameters.Count > 1 && RotationCount < Settings.RaidEmbedParameters.Count ?(ushort)Settings.RaidEmbedParameters[RotationCount + 1].Species : (ushort)Settings.RaidEmbedParameters[RotationCount].Species,
             };
             if (Settings.RaidEmbedParameters.Count > 1 && Settings.RaidEmbedParameters.Count < RotationCount ? Settings.RaidEmbedParameters[RotationCount + 1].IsShiny : Settings.RaidEmbedParameters[RotationCount].IsShiny)
                 CommonEdits.SetIsShiny(pknext, true);
